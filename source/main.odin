@@ -67,23 +67,26 @@ main :: proc ()
         ok = sdl.WaitAndAcquireGPUSwapchainTexture( cmd_buf , window , &swapchain_tex , nil , nil )
         assert( ok )
 
-        color_target := sdl.GPUColorTargetInfo {
-            texture = swapchain_tex ,
-            load_op = .CLEAR ,
-            clear_color = { 0.2 , 0.2 , 0.2 , 1 } ,
-            store_op = .STORE ,
-        }
-
-        render_pass := sdl.BeginGPURenderPass( cmd_buf , &color_target , 1 , nil )
+        if swapchain_tex!=nil
         {
-            sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
+            color_target := sdl.GPUColorTargetInfo {
+                texture = swapchain_tex ,
+                load_op = .CLEAR ,
+                clear_color = { 0.2 , 0.2 , 0.2 , 1 } ,
+                store_op = .STORE ,
+            }
 
-            // bind vertex data here
-            // bind uniform data here
+            render_pass := sdl.BeginGPURenderPass( cmd_buf , &color_target , 1 , nil )
+            {
+                sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
 
-            sdl.DrawGPUPrimitives(render_pass, 3, 1, 0, 0)
+                // bind vertex data here
+                // bind uniform data here
+
+                sdl.DrawGPUPrimitives(render_pass, 3, 1, 0, 0)
+            }
+            sdl.EndGPURenderPass( render_pass )
         }
-        sdl.EndGPURenderPass( render_pass )
 
         ok = sdl.SubmitGPUCommandBuffer( cmd_buf )
         assert( ok )
