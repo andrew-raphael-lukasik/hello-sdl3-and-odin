@@ -1,20 +1,31 @@
 package main
 
 import sdl "vendor:sdl3"
-import "base:runtime"
+// import "base:runtime"
 import "core:log"
 import "core:time"
-import "core:math"
+// import "core:math"
+import "core:mem"
 import "core:math/linalg"
 
 vert_shader_spv := #load("../shaders_compiled/shader.spv.vert")
 frag_shader_spv := #load("../shaders_compiled/shader.spv.frag")
 
+vec3 :: [3]f32
+
+trianle_vertex_data : []vec3 = {
+    {-0.9, -0.9, 0}, {1, 1, 0},
+    {0, 0.9, 0}, {0, 1, 1},
+    {0.9, -0.9, 0}, {1, 0, 1},
+}
+trianle_vertex_data_num_bytes := u32(len(trianle_vertex_data) * size_of(vec3))
+
 main :: proc ()
 {
     context.logger = log.create_console_logger()
-
     sdl.SetLogPriorities(.VERBOSE)
+
+    // log.debugf("trianle_num_bytes: {}", trianle_num_bytes)
     
     ok := sdl.Init({.VIDEO})
     assert( ok )
@@ -33,10 +44,70 @@ main :: proc ()
     vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1)
     frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0)
 
-    pipeline := sdl.CreateGPUGraphicsPipeline(gpu ,{
+    vertex_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+        usage = { sdl.GPUBufferUsageFlag.VERTEX },
+        size =  trianle_vertex_data_num_bytes,
+    })
+    vertex_transfer_buf := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
+        usage = sdl.GPUTransferBufferUsage.UPLOAD,
+        size = trianle_vertex_data_num_bytes,
+        props = 0,
+    })
+    {
+        vertex_transfer_map := sdl.MapGPUTransferBuffer(gpu, vertex_transfer_buf, false)
+        mem.copy(vertex_transfer_map, raw_data(trianle_vertex_data), int(trianle_vertex_data_num_bytes))
+        sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buf)
+    }
+
+    copy_cmd_buf := sdl.AcquireGPUCommandBuffer( gpu )
+    {
+        copy_pass := sdl.BeginGPUCopyPass(copy_cmd_buf)
+        sdl.UploadToGPUBuffer(
+            copy_pass,
+            sdl.GPUTransferBufferLocation{
+                transfer_buffer = vertex_transfer_buf,
+                offset = 0,
+            },
+            sdl.GPUBufferRegion{
+                buffer = vertex_buffer_gpu,
+                offset = 0,
+                size = trianle_vertex_data_num_bytes,
+            },
+            false
+        )
+        sdl.EndGPUCopyPass(copy_pass)
+    }
+    ok = sdl.SubmitGPUCommandBuffer( copy_cmd_buf )
+    assert( ok )
+
+    vert_attrs := []sdl.GPUVertexAttribute{
+        {
+            location = 0,
+            buffer_slot = 0,
+            format = .FLOAT3,
+            offset = 0,
+        },
+        {
+            location = 1,
+            buffer_slot = 0,
+            format = .FLOAT3,
+            offset = size_of(vec3),
+        },
+    }
+    pipeline := sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = vert_shader,
         fragment_shader = frag_shader,
         primitive_type = .TRIANGLELIST,
+        vertex_input_state = {
+            vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
+                slot = 0,
+                pitch = size_of(vec3) * 2,
+                input_rate = .VERTEX,
+            },
+            num_vertex_buffers = 1,
+            vertex_attributes = raw_data(vert_attrs),
+            num_vertex_attributes = u32(len(vert_attrs)),
+        },
         target_info = {
             num_color_targets = 1,
             color_target_descriptions = &(sdl.GPUColorTargetDescription{
@@ -98,12 +169,13 @@ main :: proc ()
             {
                 sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
 
+                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer=vertex_buffer_gpu, offset=0}, 1)
+
                 ubo := UBO{
                     mvp = proj_matrix * model_matrix
                 }
                 sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
 
-                // bind vertex data here
                 // bind uniform data here
 
                 sdl.DrawGPUPrimitives(render_pass, 3, 1, 0, 0)
