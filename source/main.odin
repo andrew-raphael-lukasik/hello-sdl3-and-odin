@@ -11,14 +11,18 @@ import "core:math/linalg"
 vert_shader_spv := #load("../shaders_compiled/shader.spv.vert")
 frag_shader_spv := #load("../shaders_compiled/shader.spv.frag")
 
-vec3 :: [3]f32
-
-trianle_vertex_data : []vec3 = {
-    {-0.9, -0.9, 0}, {1, 1, 0},
-    {0, 0.9, 0}, {0, 1, 1},
-    {0.9, -0.9, 0}, {1, 0, 1},
+Vertex_Data :: struct
+{
+    pos: [3]f32,
+    col: [3]f32,
 }
-trianle_vertex_data_num_bytes := u32(len(trianle_vertex_data) * size_of(vec3))
+
+vertex_data_trianle : []Vertex_Data = {
+    { pos = {-0.9, -0.9, 0}, col = {1, 1, 0} },
+    { pos = {0, 0.9, 0}, col = {0, 1, 1} },
+    { pos = {0.9, -0.9, 0}, col = {1, 0, 1} },
+}
+trianle_vertex_data_num_bytes := u32(len(vertex_data_trianle) * size_of(vertex_data_trianle[0]))
 
 main :: proc ()
 {
@@ -55,7 +59,7 @@ main :: proc ()
     })
     {
         vertex_transfer_map := sdl.MapGPUTransferBuffer(gpu, vertex_transfer_buf, false)
-        mem.copy(vertex_transfer_map, raw_data(trianle_vertex_data), int(trianle_vertex_data_num_bytes))
+        mem.copy(vertex_transfer_map, raw_data(vertex_data_trianle), int(trianle_vertex_data_num_bytes))
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buf)
     }
 
@@ -79,19 +83,20 @@ main :: proc ()
     }
     ok = sdl.SubmitGPUCommandBuffer( copy_cmd_buf )
     assert( ok )
+    sdl.ReleaseGPUTransferBuffer(gpu, vertex_transfer_buf)
 
     vert_attrs := []sdl.GPUVertexAttribute{
         {
             location = 0,
             buffer_slot = 0,
             format = .FLOAT3,
-            offset = 0,
+            offset = u32(offset_of(Vertex_Data, pos)),
         },
         {
             location = 1,
             buffer_slot = 0,
             format = .FLOAT3,
-            offset = size_of(vec3),
+            offset = u32(offset_of(Vertex_Data, col)),
         },
     }
     pipeline := sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
@@ -101,7 +106,7 @@ main :: proc ()
         vertex_input_state = {
             vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
                 slot = 0,
-                pitch = size_of(vec3) * 2,
+                pitch = size_of(Vertex_Data),
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
