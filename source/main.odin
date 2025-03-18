@@ -34,8 +34,8 @@ main :: proc ()
     ok := sdl.Init({.VIDEO})
     assert( ok )
     
-    window_width: i32 = 1280
-    window_height: i32 = 780
+    window_width:i32 = 1280
+    window_height:i32 = 780
     window := sdl.CreateWindow("Hello SDL3 and Odin", window_width, window_height, {})
     assert( window!=nil )
 
@@ -125,7 +125,7 @@ main :: proc ()
     sdl.ReleaseGPUShader(gpu, frag_shader)
 
     sdl.GetWindowSize(window, &window_width, &window_height)
-    proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_width)/f32(window_width), 0.001, 1000.0 )
+    proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_width)/f32(window_height), 0.001, 1000.0 )
     model_matrix := linalg.MATRIX4F32_IDENTITY
 
     game_time_start := time.now()
