@@ -7,6 +7,8 @@ import "core:time"
 // import "core:math"
 import "core:mem"
 import "core:math/linalg"
+import fmt "core:fmt"
+import cgltf "vendor:cgltf"
 
 vert_shader_spv := #load("../shaders_compiled/shader.spv.vert")
 frag_shader_spv := #load("../shaders_compiled/shader.spv.frag")
@@ -35,19 +37,26 @@ main :: proc ()
     context.logger = log.create_console_logger()
     sdl.SetLogPriorities(.VERBOSE)
 
-    ok := sdl.Init({.VIDEO})
-    assert( ok )
+    if !sdl.Init({.VIDEO}) {
+        fmt.eprintln(sdl.GetError())
+        return
+    }
+    defer sdl.Quit()
     
     window_width:i32 = 1280
     window_height:i32 = 780
     window := sdl.CreateWindow("Hello SDL3 and Odin", window_width, window_height, {})
-    assert( window!=nil )
+    if window==nil {
+        fmt.eprintln(sdl.GetError())
+        return
+    }
+    defer sdl.DestroyWindow(window)
 
     gpu := sdl.CreateGPUDevice({.SPIRV}, true, nil)
-    assert( gpu!=nil )
+    assert(gpu!=nil)
 
-    ok = sdl.ClaimWindowForGPUDevice(gpu, window)
-    assert( ok )
+    ok := sdl.ClaimWindowForGPUDevice(gpu, window)
+    assert(ok)
 
     vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1)
     frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0)
@@ -75,7 +84,7 @@ main :: proc ()
         size =  indices_num_bytes,
     })
 
-    copy_cmd_buf := sdl.AcquireGPUCommandBuffer( gpu )
+    copy_cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
     {
         copy_pass := sdl.BeginGPUCopyPass(copy_cmd_buf)
         sdl.UploadToGPUBuffer(
@@ -106,8 +115,8 @@ main :: proc ()
         )
         sdl.EndGPUCopyPass(copy_pass)
     }
-    ok = sdl.SubmitGPUCommandBuffer( copy_cmd_buf )
-    assert( ok )
+    ok = sdl.SubmitGPUCommandBuffer(copy_cmd_buf)
+    assert(ok)
     sdl.ReleaseGPUTransferBuffer(gpu, transfer_buffer)
 
     vert_attrs := []sdl.GPUVertexAttribute{
@@ -150,7 +159,7 @@ main :: proc ()
     sdl.ReleaseGPUShader(gpu, frag_shader)
 
     sdl.GetWindowSize(window, &window_width, &window_height)
-    proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_width)/f32(window_height), 0.001, 1000.0 )
+    proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_width)/f32(window_height), 0.001, 1000.0)
     model_matrix := linalg.MATRIX4F32_IDENTITY
 
     game_time_start := time.now()
@@ -180,11 +189,11 @@ main :: proc ()
  
 
         // RENDER
-        cmd_buf := sdl.AcquireGPUCommandBuffer( gpu )
+        cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
 
         swapchain_tex : ^sdl.GPUTexture
-        ok = sdl.WaitAndAcquireGPUSwapchainTexture( cmd_buf , window , &swapchain_tex , nil , nil )
-        assert( ok )
+        ok = sdl.WaitAndAcquireGPUSwapchainTexture(cmd_buf , window , &swapchain_tex , nil , nil)
+        assert(ok)
 
         if swapchain_tex!=nil
         {
@@ -195,7 +204,7 @@ main :: proc ()
                 store_op = .STORE ,
             }
 
-            render_pass := sdl.BeginGPURenderPass( cmd_buf , &color_target , 1 , nil )
+            render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
             {
                 sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
 
@@ -209,15 +218,15 @@ main :: proc ()
 
                 sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(indices)), 1, 0, 0, 0)
             }
-            sdl.EndGPURenderPass( render_pass )
+            sdl.EndGPURenderPass(render_pass)
         }
         else
         {
             // not rendering, window minimized etc.
         }
 
-        ok = sdl.SubmitGPUCommandBuffer( cmd_buf )
-        assert( ok )
+        ok = sdl.SubmitGPUCommandBuffer(cmd_buf)
+        assert(ok)
     }
 }
 
