@@ -43,6 +43,15 @@ main :: proc ()
         context.allocator = mem.tracking_allocator((&tracking_allocator))
     }
 
+    arena_allocator : mem.Allocator
+    arena_buffer := make([]byte, 1024*1024)
+    {
+        arena: virtual.Arena
+        arena_init_error := virtual.arena_init_buffer(&arena, arena_buffer)
+        if arena_init_error!=nil { log.panicf("Error initializing arena: %v\n", arena_init_error) }
+        arena_allocator = virtual.arena_allocator(&arena)
+    }
+
     context.logger = log.create_console_logger(allocator = default_allocator)
 
     sdl.SetLogPriorities(.VERBOSE)
@@ -239,9 +248,11 @@ main :: proc ()
         assert(ok)
     }
 
+    delete(arena_buffer)
+
     when ODIN_DEBUG
     {
-        for key, value in tracking_allocator.allocation_map { fmt.printf("%v: Leaked %v bytes\n", value.location, value.size) }
+        for key, value in tracking_allocator.allocation_map { log.errorf("%v: Leaked %v bytes\n", value.location, value.size) }
         for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
     }
 }
