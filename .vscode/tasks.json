@@ -10,6 +10,22 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+		{
+            "label": "build",
+            "type": "shell",
+            "command": "./build.bat",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "odin build ./source/ -debug -out:bin/debug/hello-sdl3.exe",
+            "group": "build"
         }
     ]
 }
