@@ -1,14 +1,20 @@
 package main
 
 import sdl "vendor:sdl3"
+import sdl_image "vendor:sdl3/image"
 // import "base:runtime"
 import "core:log"
 import "core:time"
-// import "core:math"
+import math "core:math"
 import "core:mem"
+import "core:mem/virtual"
 import "core:math/linalg"
 import fmt "core:fmt"
 import cgltf "vendor:cgltf"
+
+
+
+num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }
 
 vert_shader_spv := #load("../shaders_compiled/shader.spv.vert")
 frag_shader_spv := #load("../shaders_compiled/shader.spv.frag")
@@ -25,12 +31,39 @@ vertices : []Vertex_Data = {
     { pos = {0.5, 0.5, 0}, col = {1, 0, 1} },//TR
     { pos = {0.5, -0.5, 0}, col = {1, 1, 1} },//BR
 }
-vertices_num_bytes := u32(len(vertices) * size_of(vertices[0]))
+vertices_num_bytes := u32(num_bytes_of(&vertices))
 indices := []u16 {
     0, 1, 2,
     0, 2, 3,
 }
-indices_num_bytes := u32(len(indices) * size_of(indices[0]))
+indices_num_bytes := u32(num_bytes_of(&indices))
+
+TransferBufferQueueItem :: struct
+{
+    start: int,
+    end: int,
+    source: rawptr,
+    gpu_buffer_region: sdl.GPUBufferRegion,
+}
+transfer_buffer_queue := make([dynamic]TransferBufferQueueItem, 0, 32)
+transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPUBufferRegion)
+{
+    start := 0
+    {
+        l := len(transfer_buffer_queue)
+        if l!=0
+        {
+            start = transfer_buffer_queue[l-1].end
+        }
+    }
+    append(&transfer_buffer_queue, TransferBufferQueueItem{
+        start = start,
+        end = start + num_bytes_of(source),
+        source = raw_data(source^),
+        gpu_buffer_region = gpu_buffer_region,
+    })
+}
+
 
 
 main :: proc ()
@@ -84,59 +117,63 @@ main :: proc ()
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
         size =  vertices_num_bytes,
     })
-    transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
-        usage = sdl.GPUTransferBufferUsage.UPLOAD,
-        size = vertices_num_bytes + indices_num_bytes,
-        props = 0,
+    transfer_buffer_queue_append(&vertices, sdl.GPUBufferRegion{
+        buffer = vertex_buffer_gpu,
+        offset = 0,
+        size = vertices_num_bytes,
     })
-    {
-        transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, transfer_buffer, false)
-        mem.copy(transfer_map, raw_data(vertices), int(vertices_num_bytes))
-        mem.copy(transfer_map[vertices_num_bytes:], raw_data(indices), int(indices_num_bytes))
-        a := transfer_map[vertices_num_bytes:]
-        b := transfer_map[:vertices_num_bytes]
-        sdl.UnmapGPUTransferBuffer(gpu, transfer_buffer)
-    }
 
     index_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
         size =  indices_num_bytes,
     })
+    transfer_buffer_queue_append(&indices, sdl.GPUBufferRegion{
+        buffer = index_buffer_gpu,
+        offset = 0,
+        size = indices_num_bytes,
+    })
+
+    transfer_buffer_size:u32 = 0
+    for t in transfer_buffer_queue
+    {
+        transfer_buffer_size += u32(t.end - t.start);
+    }
+    transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
+        usage = sdl.GPUTransferBufferUsage.UPLOAD,
+        size = transfer_buffer_size,
+    })
+    {
+        transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, transfer_buffer, false)
+        for t in transfer_buffer_queue
+        {
+            mem.copy(transfer_map[t.start:], t.source, t.end-t.start)
+        }
+        sdl.UnmapGPUTransferBuffer(gpu, transfer_buffer)
+    }
 
     copy_cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
     {
         copy_pass := sdl.BeginGPUCopyPass(copy_cmd_buf)
-        sdl.UploadToGPUBuffer(
-            copy_pass,
-            sdl.GPUTransferBufferLocation{
-                transfer_buffer = transfer_buffer,
-                offset = 0,
-            },
-            sdl.GPUBufferRegion{
-                buffer = vertex_buffer_gpu,
-                offset = 0,
-                size = vertices_num_bytes,
-            },
-            false
-        )
-        sdl.UploadToGPUBuffer(
-            copy_pass,
-            sdl.GPUTransferBufferLocation{
-                transfer_buffer = transfer_buffer,
-                offset = vertices_num_bytes,
-            },
-            sdl.GPUBufferRegion{
-                buffer = index_buffer_gpu,
-                offset = 0,
-                size = indices_num_bytes,
-            },
-            false
-        )
+        transfer_buffer_offset:u32 = 0
+        for t in transfer_buffer_queue
+        {
+            sdl.UploadToGPUBuffer(
+                copy_pass,
+                sdl.GPUTransferBufferLocation{
+                    transfer_buffer = transfer_buffer,
+                    offset = transfer_buffer_offset,
+                },
+                t.gpu_buffer_region,
+                false
+            )
+            transfer_buffer_offset += t.gpu_buffer_region.size
+        }
         sdl.EndGPUCopyPass(copy_pass)
     }
     ok = sdl.SubmitGPUCommandBuffer(copy_cmd_buf)
     assert(ok)
     sdl.ReleaseGPUTransferBuffer(gpu, transfer_buffer)
+    delete_dynamic_array(transfer_buffer_queue)// clear_dynamic_array(&transfer_buffer_queue)
 
     vert_attrs := []sdl.GPUVertexAttribute{
         {
