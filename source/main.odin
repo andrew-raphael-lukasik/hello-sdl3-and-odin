@@ -32,9 +32,19 @@ indices := []u16 {
 }
 indices_num_bytes := u32(len(indices) * size_of(indices[0]))
 
+
 main :: proc ()
 {
-    context.logger = log.create_console_logger()
+    default_allocator := context.allocator
+    when ODIN_DEBUG
+    {
+        tracking_allocator: mem.Tracking_Allocator
+        mem.tracking_allocator_init(&tracking_allocator, context.allocator)
+        context.allocator = mem.tracking_allocator((&tracking_allocator))
+    }
+
+    context.logger = log.create_console_logger(allocator = default_allocator)
+
     sdl.SetLogPriorities(.VERBOSE)
 
     if !sdl.Init({.VIDEO}) {
@@ -227,6 +237,12 @@ main :: proc ()
 
         ok = sdl.SubmitGPUCommandBuffer(cmd_buf)
         assert(ok)
+    }
+
+    when ODIN_DEBUG
+    {
+        for key, value in tracking_allocator.allocation_map { fmt.printf("%v: Leaked %v bytes\n", value.location, value.size) }
+        for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
     }
 }
 
