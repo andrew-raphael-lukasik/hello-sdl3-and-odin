@@ -40,27 +40,29 @@ indices_num_bytes := u32(num_bytes_of(&indices))
 
 TransferBufferQueueItem :: struct
 {
-    start: int,
-    end: int,
+    transfer_buffer_offset: int,
+    size: int,
     source: rawptr,
-    gpu_buffer_region: sdl.GPUBufferRegion,
+    gpu_buffer_region: ^sdl.GPUBufferRegion,
+    gpu_texture_region: ^sdl.GPUTextureRegion,
 }
 transfer_buffer_queue := make([dynamic]TransferBufferQueueItem, 0, 32)
-transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPUBufferRegion)
+transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
 {
-    start := 0
+    offset := 0
     {
         l := len(transfer_buffer_queue)
         if l!=0
         {
-            start = transfer_buffer_queue[l-1].end
+            offset = transfer_buffer_queue[l-1].transfer_buffer_offset + transfer_buffer_queue[l-1].size
         }
     }
     append(&transfer_buffer_queue, TransferBufferQueueItem{
-        start = start,
-        end = start + num_bytes_of(source),
+        transfer_buffer_offset = offset,
+        size = num_bytes_of(source),
         source = raw_data(source^),
         gpu_buffer_region = gpu_buffer_region,
+        gpu_texture_region = gpu_texture_region,
     })
 }
 
@@ -117,26 +119,26 @@ main :: proc ()
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
         size =  vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&vertices, sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&vertices, &sdl.GPUBufferRegion{
         buffer = vertex_buffer_gpu,
         offset = 0,
         size = vertices_num_bytes,
-    })
+    }, nil)
 
     index_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
         size =  indices_num_bytes,
     })
-    transfer_buffer_queue_append(&indices, sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&indices, &sdl.GPUBufferRegion{
         buffer = index_buffer_gpu,
         offset = 0,
         size = indices_num_bytes,
-    })
+    }, nil)
 
     transfer_buffer_size:u32 = 0
     for t in transfer_buffer_queue
     {
-        transfer_buffer_size += u32(t.end - t.start);
+        transfer_buffer_size += u32(t.size);
     }
     transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
@@ -146,7 +148,7 @@ main :: proc ()
         transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, transfer_buffer, false)
         for t in transfer_buffer_queue
         {
-            mem.copy(transfer_map[t.start:], t.source, t.end-t.start)
+            mem.copy(transfer_map[t.transfer_buffer_offset:], t.source, t.size)
         }
         sdl.UnmapGPUTransferBuffer(gpu, transfer_buffer)
     }
@@ -157,16 +159,32 @@ main :: proc ()
         transfer_buffer_offset:u32 = 0
         for t in transfer_buffer_queue
         {
-            sdl.UploadToGPUBuffer(
-                copy_pass,
-                sdl.GPUTransferBufferLocation{
-                    transfer_buffer = transfer_buffer,
-                    offset = transfer_buffer_offset,
-                },
-                t.gpu_buffer_region,
-                false
-            )
-            transfer_buffer_offset += t.gpu_buffer_region.size
+            if t.gpu_buffer_region!=nil
+            {
+                sdl.UploadToGPUBuffer(
+                    copy_pass,
+                    sdl.GPUTransferBufferLocation{
+                        transfer_buffer = transfer_buffer,
+                        offset = transfer_buffer_offset,
+                    },
+                    t.gpu_buffer_region^,
+                    false
+                )
+                transfer_buffer_offset += t.gpu_buffer_region.size
+            }
+            else if t.gpu_texture_region!=nil
+            {
+                sdl.UploadToGPUTexture(copy_pass, sdl.GPUTextureTransferInfo{
+                        transfer_buffer = transfer_buffer,
+                        offset = 0,
+                        pixels_per_row = 4,
+                        rows_per_layer = 4,
+                    },
+                    t.gpu_texture_region^,
+                    false
+                )
+                transfer_buffer_offset += u32(t.size)
+            }
         }
         sdl.EndGPUCopyPass(copy_pass)
     }
