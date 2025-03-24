@@ -52,9 +52,9 @@ main :: proc ()
         render.tick()
     }
 
+    game.close()
     input.close()
     render.close()
-    game.close()
     app.close()
 
     delete(arena_buffer)
