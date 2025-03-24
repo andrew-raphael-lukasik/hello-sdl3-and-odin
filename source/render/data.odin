@@ -1,6 +1,18 @@
 package render
 import sdl "vendor:sdl3"
+import "core:math/linalg"
 
+
+gpu: ^sdl.GPUDevice
+window_width:i32 = 1280
+window_height:i32 = 780
+window: ^sdl.Window
+pipeline: ^sdl.GPUGraphicsPipeline
+sampler: ^sdl.GPUSampler
+proj_matrix := linalg.matrix4_perspective_f32(70, 1.0, 0.001, 1000.0)
+vertex_buffer_gpu: ^sdl.GPUBuffer
+index_buffer_gpu: ^sdl.GPUBuffer
+default_texture: ^sdl.GPUTexture
 
 vert_shader_spv := #load("../../shaders_compiled/shader.spv.vert")
 frag_shader_spv := #load("../../shaders_compiled/shader.spv.frag")
