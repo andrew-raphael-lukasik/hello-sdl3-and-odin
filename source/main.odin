@@ -1,72 +1,13 @@
 package main
-
 import sdl "vendor:sdl3"
-import sdl_image "vendor:sdl3/image"
-// import "base:runtime"
 import "core:log"
 import "core:time"
-import math "core:math"
+import "core:math"
 import "core:mem"
 import "core:mem/virtual"
 import "core:math/linalg"
-import fmt "core:fmt"
-import cgltf "vendor:cgltf"
-
-
-
-num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }
-
-vert_shader_spv := #load("../shaders_compiled/shader.spv.vert")
-frag_shader_spv := #load("../shaders_compiled/shader.spv.frag")
-
-Vertex_Data :: struct
-{
-    pos: [3]f32,
-    col: [3]f32,
-    uv: [2]f32
-}
-
-vertices : []Vertex_Data = {
-    { pos = {-0.5, -0.5, 0}, col = {1, 1, 0}, uv = {0, 1}},//BL
-    { pos = {-0.5, 0.5, 0}, col = {0, 1, 1}, uv = {0, 0}},//TL
-    { pos = {0.5, 0.5, 0}, col = {1, 0, 1}, uv = {1, 0}},//TR
-    { pos = {0.5, -0.5, 0}, col = {1, 1, 1}, uv = {1, 1}},//BR
-}
-vertices_num_bytes := u32(num_bytes_of(&vertices))
-indices := []u16 {
-    0, 1, 2,
-    0, 2, 3,
-}
-indices_num_bytes := u32(num_bytes_of(&indices))
-
-TransferBufferQueueItem :: struct
-{
-    transfer_buffer_offset: int,
-    size: int,
-    source: rawptr,
-    gpu_buffer_region: ^sdl.GPUBufferRegion,
-    gpu_texture_region: ^sdl.GPUTextureRegion,
-}
-transfer_buffer_queue := make([dynamic]TransferBufferQueueItem, 0, 32)
-transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
-{
-    offset := 0
-    {
-        l := len(transfer_buffer_queue)
-        if l!=0
-        {
-            offset = transfer_buffer_queue[l-1].transfer_buffer_offset + transfer_buffer_queue[l-1].size
-        }
-    }
-    append(&transfer_buffer_queue, TransferBufferQueueItem{
-        transfer_buffer_offset = offset,
-        size = num_bytes_of(source),
-        source = raw_data(source^),
-        gpu_buffer_region = gpu_buffer_region,
-        gpu_texture_region = gpu_texture_region,
-    })
-}
-
+import "core:fmt"
+import "render"
 
 
 main :: proc ()
@@ -90,7 +31,14 @@ main :: proc ()
 
     context.logger = log.create_console_logger(allocator = default_allocator)
 
-    sdl.SetLogPriorities(.VERBOSE)
+    when ODIN_DEBUG
+    {
+        sdl.SetLogPriorities(.VERBOSE)
+    }
+    else
+    {
+        sdl.SetLogPriorities(.WARN)
+    }
 
     if !sdl.Init({.VIDEO}) {
         fmt.eprintln(sdl.GetError())
@@ -113,55 +61,15 @@ main :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1, 0)
-    frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0, 1)
+    vert_shader := render.load_shader(gpu, render.vert_shader_spv, .VERTEX, 1, 0)
+    frag_shader := render.load_shader(gpu, render.frag_shader_spv, .FRAGMENT, 0, 1)
 
-    // image := sdl_image.Load("checker")
-    image_pixels := []u8{
-        255, 0, 0, 255,
-        0, 255, 0, 255,
-        0, 0, 255, 255,
-        255, 255, 0, 255,
-        
-        255, 0, 0, 255,
-        0, 255, 0, 255,
-        0, 0, 255, 255,
-        255, 255, 0, 255,
-
-        255, 0, 0, 255,
-        0, 255, 0, 255,
-        0, 0, 255, 255,
-        255, 255, 0, 255,
-
-        255, 0, 0, 255,
-        0, 255, 0, 255,
-        0, 0, 255, 255,
-        255, 255, 0, 255,
-    }
-    image := sdl.Surface{
-        flags = { sdl.SurfaceFlag.PREALLOCATED },
-        format = sdl.PixelFormat.RGBA32,
-        w = 4,
-        h = 4,
-        pitch = 4*4,
-        pixels = &image_pixels,//sdl.aligned_alloc(512,16),
-        refcount = 0,
-        reserved = nil,
-    }
-    texture := sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
-        type = sdl.GPUTextureType.D2,
-        format = sdl.GPUTextureFormat.R8G8B8A8_UNORM,
-        usage = { sdl.GPUTextureUsageFlag.SAMPLER },
-        width = 4,
-        height = 4,
-        layer_count_or_depth = 1,
-        num_levels = 1,
-    })
+    texture := render.create_texture(gpu)
     texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.GRAPHICS_STORAGE_READ },
-        size =  vertices_num_bytes,
+        size =  render.vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&image_pixels, nil, &sdl.GPUTextureRegion{
+    render.transfer_buffer_queue_append(&render.image_pixels, nil, &sdl.GPUTextureRegion{
         texture = texture,
         mip_level = 0,
         layer = 0,
@@ -175,26 +83,26 @@ main :: proc ()
 
     vertex_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
-        size =  vertices_num_bytes,
+        size =  render.vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&vertices, &sdl.GPUBufferRegion{
+    render.transfer_buffer_queue_append(&render.vertices, &sdl.GPUBufferRegion{
         buffer = vertex_buffer_gpu,
         offset = 0,
-        size = vertices_num_bytes,
+        size = render.vertices_num_bytes,
     }, nil)
 
     index_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
-        size =  indices_num_bytes,
+        size =  render.indices_num_bytes,
     })
-    transfer_buffer_queue_append(&indices, &sdl.GPUBufferRegion{
+    render.transfer_buffer_queue_append(&render.indices, &sdl.GPUBufferRegion{
         buffer = index_buffer_gpu,
         offset = 0,
-        size = indices_num_bytes,
+        size = render.indices_num_bytes,
     }, nil)
 
     transfer_buffer_size:u32 = 0
-    for t in transfer_buffer_queue
+    for t in render.transfer_buffer_queue
     {
         transfer_buffer_size += u32(t.size);
     }
@@ -204,7 +112,7 @@ main :: proc ()
     })
     {
         transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, transfer_buffer, false)
-        for t in transfer_buffer_queue
+        for t in render.transfer_buffer_queue
         {
             mem.copy(transfer_map[t.transfer_buffer_offset:], t.source, t.size)
         }
@@ -215,7 +123,7 @@ main :: proc ()
     {
         copy_pass := sdl.BeginGPUCopyPass(copy_cmd_buf)
         transfer_buffer_offset:u32 = 0
-        for t in transfer_buffer_queue
+        for t in render.transfer_buffer_queue
         {
             if t.gpu_buffer_region!=nil
             {
@@ -249,30 +157,10 @@ main :: proc ()
     ok = sdl.SubmitGPUCommandBuffer(copy_cmd_buf)
     assert(ok)
     sdl.ReleaseGPUTransferBuffer(gpu, transfer_buffer)
-    delete_dynamic_array(transfer_buffer_queue)// clear_dynamic_array(&transfer_buffer_queue)
+    delete_dynamic_array(render.transfer_buffer_queue)// clear_dynamic_array(&transfer_buffer_queue)
 
     sampler := sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
 
-    vert_attrs := []sdl.GPUVertexAttribute{
-        {
-            location = 0,
-            buffer_slot = 0,
-            format = .FLOAT3,
-            offset = u32(offset_of(Vertex_Data, pos)),
-        },
-        {
-            location = 1,
-            buffer_slot = 0,
-            format = .FLOAT3,
-            offset = u32(offset_of(Vertex_Data, col)),
-        },
-        {
-            location = 2,
-            buffer_slot = 0,
-            format = .FLOAT2,
-            offset = u32(offset_of(Vertex_Data, uv)),
-        },
-    }
     pipeline := sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = vert_shader,
         fragment_shader = frag_shader,
@@ -280,12 +168,12 @@ main :: proc ()
         vertex_input_state = {
             vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
                 slot = 0,
-                pitch = size_of(Vertex_Data),
+                pitch = size_of(render.Vertex_Data),
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            vertex_attributes = raw_data(vert_attrs),
-            num_vertex_attributes = u32(len(vert_attrs)),
+            vertex_attributes = raw_data(render.vert_attrs),
+            num_vertex_attributes = u32(len(render.vert_attrs)),
         },
         target_info = {
             num_color_targets = 1,
@@ -351,7 +239,7 @@ main :: proc ()
                 sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
                 sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
 
-                ubo := UBO{
+                ubo := render.UBO{
                     mvp = proj_matrix * model_matrix
                 }
                 sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
@@ -363,7 +251,7 @@ main :: proc ()
                     1
                 )
                 
-                sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(indices)), 1, 0, 0, 0)
+                sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(render.indices)), 1, 0, 0, 0)
             }
             sdl.EndGPURenderPass(render_pass)
         }
@@ -383,21 +271,4 @@ main :: proc ()
         for key, value in tracking_allocator.allocation_map { log.errorf("%v: Leaked %v bytes\n", value.location, value.size) }
         for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
     }
-}
-
-load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderStage, num_uniform_buffers: u32, num_samplers: u32) -> ^sdl.GPUShader
-{
-    return sdl.CreateGPUShader(device, sdl.GPUShaderCreateInfo{
-        code_size = len(code),
-        code = raw_data(code),
-        entrypoint = "main",
-        format = {.SPIRV},
-        stage = stage,
-        num_uniform_buffers = num_uniform_buffers,
-        num_samplers = num_samplers,
-    })
-}
-
-UBO :: struct {
-    mvp: matrix[4,4]f32
 }
