@@ -7,5 +7,5 @@ layout(location=0) out vec4 out_color;
 
 void main ()
 {
-    out_color = texture(tex_sampler, uv); * vec4(vertex_color,1);
+    out_color = texture(tex_sampler, uv) * vec4(vertex_color,1);
 }
