@@ -23,13 +23,14 @@ Vertex_Data :: struct
 {
     pos: [3]f32,
     col: [3]f32,
+    uv: [2]f32
 }
 
 vertices : []Vertex_Data = {
-    { pos = {-0.5, -0.5, 0}, col = {1, 1, 0} },//BL
-    { pos = {-0.5, 0.5, 0}, col = {0, 1, 1} },//TL
-    { pos = {0.5, 0.5, 0}, col = {1, 0, 1} },//TR
-    { pos = {0.5, -0.5, 0}, col = {1, 1, 1} },//BR
+    { pos = {-0.5, -0.5, 0}, col = {1, 1, 0}, uv = {0, 1}},//BL
+    { pos = {-0.5, 0.5, 0}, col = {0, 1, 1}, uv = {0, 0}},//TL
+    { pos = {0.5, 0.5, 0}, col = {1, 0, 1}, uv = {1, 0}},//TR
+    { pos = {0.5, -0.5, 0}, col = {1, 1, 1}, uv = {1, 1}},//BR
 }
 vertices_num_bytes := u32(num_bytes_of(&vertices))
 indices := []u16 {
@@ -112,8 +113,65 @@ main :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1)
-    frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0)
+    vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1, 0)
+    frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0, 1)
+
+    // image := sdl_image.Load("checker")
+    image_pixels := []u8{
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        0, 0, 255, 255,
+        255, 255, 0, 255,
+        
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        0, 0, 255, 255,
+        255, 255, 0, 255,
+
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        0, 0, 255, 255,
+        255, 255, 0, 255,
+
+        255, 0, 0, 255,
+        0, 255, 0, 255,
+        0, 0, 255, 255,
+        255, 255, 0, 255,
+    }
+    image := sdl.Surface{
+        flags = { sdl.SurfaceFlag.PREALLOCATED },
+        format = sdl.PixelFormat.RGBA32,
+        w = 4,
+        h = 4,
+        pitch = 4*4,
+        pixels = &image_pixels,//sdl.aligned_alloc(512,16),
+        refcount = 0,
+        reserved = nil,
+    }
+    texture := sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
+        type = sdl.GPUTextureType.D2,
+        format = sdl.GPUTextureFormat.R8G8B8A8_UNORM,
+        usage = { sdl.GPUTextureUsageFlag.SAMPLER },
+        width = 4,
+        height = 4,
+        layer_count_or_depth = 1,
+        num_levels = 1,
+    })
+    texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+        usage = { sdl.GPUBufferUsageFlag.GRAPHICS_STORAGE_READ },
+        size =  vertices_num_bytes,
+    })
+    transfer_buffer_queue_append(&image_pixels, nil, &sdl.GPUTextureRegion{
+        texture = texture,
+        mip_level = 0,
+        layer = 0,
+        x = 0,
+        y = 0,
+        z = 0,
+        w = 4,
+        h = 4,
+        d = 1,
+    })
 
     vertex_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
@@ -193,6 +251,8 @@ main :: proc ()
     sdl.ReleaseGPUTransferBuffer(gpu, transfer_buffer)
     delete_dynamic_array(transfer_buffer_queue)// clear_dynamic_array(&transfer_buffer_queue)
 
+    sampler := sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
+
     vert_attrs := []sdl.GPUVertexAttribute{
         {
             location = 0,
@@ -205,6 +265,12 @@ main :: proc ()
             buffer_slot = 0,
             format = .FLOAT3,
             offset = u32(offset_of(Vertex_Data, col)),
+        },
+        {
+            location = 2,
+            buffer_slot = 0,
+            format = .FLOAT2,
+            offset = u32(offset_of(Vertex_Data, uv)),
         },
     }
     pipeline := sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
@@ -290,6 +356,13 @@ main :: proc ()
                 }
                 sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
 
+                sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
+                        texture = texture,
+                        sampler = sampler,
+                    },
+                    1
+                )
+                
                 sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(indices)), 1, 0, 0, 0)
             }
             sdl.EndGPURenderPass(render_pass)
@@ -312,15 +385,16 @@ main :: proc ()
     }
 }
 
-load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderStage, num_uniform_buffers: u32) -> ^sdl.GPUShader
+load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderStage, num_uniform_buffers: u32, num_samplers: u32) -> ^sdl.GPUShader
 {
-    return sdl.CreateGPUShader(device, {
+    return sdl.CreateGPUShader(device, sdl.GPUShaderCreateInfo{
         code_size = len(code),
         code = raw_data(code),
         entrypoint = "main",
         format = {.SPIRV},
         stage = stage,
         num_uniform_buffers = num_uniform_buffers,
+        num_samplers = num_samplers,
     })
 }
 
