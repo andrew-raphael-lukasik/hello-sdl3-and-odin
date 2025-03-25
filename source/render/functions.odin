@@ -16,7 +16,7 @@ init :: proc ()
         return
     }
 
-    window = sdl.CreateWindow("Hello SDL3 and Odin", window_width, window_height, {})
+    window = sdl.CreateWindow("Hello SDL3 and Odin", window_size.x, window_size.y, {})
     if window==nil {
         fmt.eprintln(sdl.GetError())
         return
@@ -34,7 +34,7 @@ init :: proc ()
     default_texture = create_texture()
     texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.GRAPHICS_STORAGE_READ },
-        size =  vertices_num_bytes,
+        size =  default_quad_vertices_num_bytes,
     })
     transfer_buffer_queue_append(&image_pixels, nil, &sdl.GPUTextureRegion{
         texture = default_texture,
@@ -50,22 +50,22 @@ init :: proc ()
 
     vertex_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
-        size =  vertices_num_bytes,
+        size =  default_quad_vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&vertices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&default_quad_vertices, &sdl.GPUBufferRegion{
         buffer = vertex_buffer_gpu,
         offset = 0,
-        size = vertices_num_bytes,
+        size = default_quad_vertices_num_bytes,
     }, nil)
 
     index_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
-        size =  indices_num_bytes,
+        size =  default_quad_indices_num_bytes,
     })
-    transfer_buffer_queue_append(&indices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&default_quad_indices, &sdl.GPUBufferRegion{
         buffer = index_buffer_gpu,
         offset = 0,
-        size = indices_num_bytes,
+        size = default_quad_indices_num_bytes,
     }, nil)
 
     transfer_buffer_size:u32 = 0
@@ -153,8 +153,7 @@ init :: proc ()
     sdl.ReleaseGPUShader(gpu, vert_shader)
     sdl.ReleaseGPUShader(gpu, frag_shader)
 
-    sdl.GetWindowSize(window, &window_width, &window_height)
-    proj_matrix = linalg.matrix4_perspective_f32(70, f32(window_width)/f32(window_height), 0.001, 1000.0)
+    sdl.GetWindowSize(window, &window_size.x, &window_size.y)
 }
 
 close :: proc ()
@@ -166,56 +165,61 @@ close :: proc ()
 
 tick :: proc ()
 {
-        model_matrix := linalg.matrix4_rotate_f32(f32(linalg.TAU)*f32(app.time_tick), linalg.Vector3f32{0,1,0})
-        model_matrix[3][0] = 0
-        model_matrix[3][1] = 0
-        model_matrix[3][2] = -10
+    proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
+    view_matrix := linalg.MATRIX4F32_IDENTITY
+    model_matrix := linalg.matrix4_rotate_f32(f32(linalg.TAU)*f32(app.time_tick), linalg.Vector3f32{0,1,0})
+    model_matrix[3][0] = 0
+    model_matrix[3][1] = 0
+    model_matrix[3][2] = -10
 
-        cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
+    cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
 
-        swapchain_tex : ^sdl.GPUTexture
-        ok := sdl.WaitAndAcquireGPUSwapchainTexture(cmd_buf , window , &swapchain_tex , nil , nil)
-        assert(ok)
+    swapchain_tex : ^sdl.GPUTexture
+    ok := sdl.WaitAndAcquireGPUSwapchainTexture(cmd_buf , window , &swapchain_tex , nil , nil)
+    assert(ok)
 
-        if swapchain_tex!=nil
-        {
-            color_target := sdl.GPUColorTargetInfo {
-                texture = swapchain_tex ,
-                load_op = .CLEAR ,
-                clear_color = { 0.2 , 0.2 , 0.2 , 1 } ,
-                store_op = .STORE ,
-            }
-
-            render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
-            {
-                sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
-
-                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
-                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
-
-                ubo := UBO{
-                    mvp = proj_matrix * model_matrix
-                }
-                sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
-
-                sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
-                        texture = default_texture,
-                        sampler = sampler,
-                    },
-                    1
-                )
-                
-                sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(indices)), 1, 0, 0, 0)
-            }
-            sdl.EndGPURenderPass(render_pass)
-        }
-        else
-        {
-            // not rendering, window minimized etc.
+    if swapchain_tex!=nil
+    {
+        color_target := sdl.GPUColorTargetInfo {
+            texture = swapchain_tex ,
+            load_op = .CLEAR ,
+            clear_color = { 0.2 , 0.2 , 0.2 , 1 } ,
+            store_op = .STORE ,
         }
 
-        ok = sdl.SubmitGPUCommandBuffer(cmd_buf)
-        assert(ok)
+        render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
+        {
+            sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
+
+            sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
+            sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
+
+            ubo := Uniform_Buffer_Object{
+                mvp = proj_matrix * model_matrix,
+                model = model_matrix,
+                view = view_matrix,
+                proj = proj_matrix,
+            }
+            sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
+
+            sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
+                    texture = default_texture,
+                    sampler = sampler,
+                },
+                1
+            )
+            
+            sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(default_quad_indices)), 1, 0, 0, 0)
+        }
+        sdl.EndGPURenderPass(render_pass)
+    }
+    else
+    {
+        // not rendering, window minimized etc.
+    }
+
+    ok = sdl.SubmitGPUCommandBuffer(cmd_buf)
+    assert(ok)
 }
 
 num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }
@@ -243,7 +247,7 @@ transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPU
             offset = transfer_buffer_queue[l-1].transfer_buffer_offset + transfer_buffer_queue[l-1].size
         }
     }
-    append(&transfer_buffer_queue, TransferBufferQueueItem{
+    append(&transfer_buffer_queue, Transfer_Buffer_Queue_Item{
         transfer_buffer_offset = offset,
         size = num_bytes_of(source),
         source = raw_data(source^),
