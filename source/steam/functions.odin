@@ -6,10 +6,12 @@ import "base:runtime"
 import "core:mem"
 import "core:log"
 
+
 init :: proc ()
 {
     if steam.RestartAppIfNecessary(steam.uAppIdInvalid)
     {
+        steam_init_termination_requested = 1
         log.debug("Launching app through Steam...")
         return
     }

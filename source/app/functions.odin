@@ -10,6 +10,10 @@ init :: proc ()
     // num_ticks = sdl.GetTicks()
 
     steam.init()
+    if steam.steam_init_termination_requested==1
+    {
+        alive = 0
+    }
 }
 
 close :: proc ()
