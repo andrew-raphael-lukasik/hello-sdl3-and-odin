@@ -1,7 +1,7 @@
 package render
 import sdl "vendor:sdl3"
 import sdl_image "vendor:sdl3/image"
-import cgltf "vendor:cgltf"
+import "vendor:cgltf"
 import "core:fmt"
 import "core:mem"
 import "core:math"
@@ -11,13 +11,15 @@ import "../app"
 
 init :: proc ()
 {
-    if !sdl.Init({.VIDEO}) {
+    if !sdl.Init({.VIDEO})
+    {
         fmt.eprintln(sdl.GetError())
         return
     }
 
     window = sdl.CreateWindow("Hello SDL3 and Odin", window_size.x, window_size.y, {})
-    if window==nil {
+    if window==nil
+    {
         fmt.eprintln(sdl.GetError())
         return
     }
@@ -28,8 +30,8 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    vert_shader := load_shader(gpu, vert_shader_spv, .VERTEX, 1, 0)
-    frag_shader := load_shader(gpu, frag_shader_spv, .FRAGMENT, 0, 1)
+    vert_shader := load_shader(gpu, vert_shader_spv_rawdata, .VERTEX, 1, 0)
+    frag_shader := load_shader(gpu, frag_shader_spv_rawdata, .FRAGMENT, 0, 1)
 
     default_texture = create_texture()
     texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{

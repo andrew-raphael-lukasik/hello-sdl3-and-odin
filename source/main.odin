@@ -40,9 +40,9 @@ main :: proc ()
     }
     
     app.init()
-    render.init()
-    input.init()
     game.init()
+    input.init()
+    render.init()
 
     for app.alive!=0
     {
@@ -54,8 +54,8 @@ main :: proc ()
 
     game.close()
     input.close()
-    render.close()
     app.close()
+    render.close()
 
     delete(arena_buffer)
 
