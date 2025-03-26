@@ -11,11 +11,9 @@ sampler: ^sdl.GPUSampler
 vertex_buffer_gpu: ^sdl.GPUBuffer
 index_buffer_gpu: ^sdl.GPUBuffer
 default_texture: ^sdl.GPUTexture
+default_shader_vert: ^sdl.GPUShader
+default_shader_frag: ^sdl.GPUShader
 transfer_buffer_queue := make([dynamic]Transfer_Buffer_Queue_Item, 0, 32)
-
-vert_shader_spv_rawdata :: #load("../../shaders_compiled/shader.spv.vert")
-frag_shader_spv_rawdata :: #load("../../shaders_compiled/shader.spv.frag")
-default_cube_rawdata :: #load("../../assets/default_cube.gltf")
 
 default_quad_vertices : []Vertex_Data = {
     { pos = {-0.5, -0.5, 0},    col = {1, 1, 1},    uv = {0, 0}},//BL

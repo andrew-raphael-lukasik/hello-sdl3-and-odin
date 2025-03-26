@@ -6,6 +6,11 @@ import "core:fmt"
 import "core:mem"
 import "core:math"
 import "core:math/linalg"
+import "core:io"
+import "core:os"
+import "core:path/filepath"
+import "core:strings"
+import "core:log"
 import "../app"
 
 
@@ -30,9 +35,28 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    vert_shader := load_shader(gpu, vert_shader_spv_rawdata, .VERTEX, 1, 0)
-    frag_shader := load_shader(gpu, frag_shader_spv_rawdata, .FRAGMENT, 0, 1)
-
+    {
+        dir_current := os.get_current_directory(context.temp_allocator)
+        dir_parent := filepath.dir(dir_current, context.temp_allocator)
+        
+        vert_shader_spv_rawdata: []u8
+        vert_shader_spv_rawdata_path := filepath.join([]string{dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
+        vert_shader_spv_rawdata, ok = os.read_entire_file(vert_shader_spv_rawdata_path, context.temp_allocator)
+        if !ok
+        {
+            log.errorf("file read failed: '{}'", vert_shader_spv_rawdata_path)
+        }
+        frag_shader_spv_rawdata: []u8
+        frag_shader_spv_rawdata_path := filepath.join([]string{dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
+        frag_shader_spv_rawdata, ok = os.read_entire_file(frag_shader_spv_rawdata_path, context.temp_allocator)
+        if !ok
+        {
+            log.errorf("file read failed: '{}'", frag_shader_spv_rawdata_path)
+        }
+        default_shader_vert = load_shader(gpu, vert_shader_spv_rawdata, .VERTEX, 1, 0)
+        default_shader_frag = load_shader(gpu, frag_shader_spv_rawdata, .FRAGMENT, 0, 1)
+    }
+    
     default_texture = create_texture()
     texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.GRAPHICS_STORAGE_READ },
@@ -131,8 +155,8 @@ init :: proc ()
     sampler = sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
 
     pipeline = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
-        vertex_shader = vert_shader,
-        fragment_shader = frag_shader,
+        vertex_shader = default_shader_vert,
+        fragment_shader = default_shader_frag,
         primitive_type = .TRIANGLELIST,
         vertex_input_state = {
             vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
@@ -152,8 +176,8 @@ init :: proc ()
         }
     } )
 
-    sdl.ReleaseGPUShader(gpu, vert_shader)
-    sdl.ReleaseGPUShader(gpu, frag_shader)
+    sdl.ReleaseGPUShader(gpu, default_shader_vert)
+    sdl.ReleaseGPUShader(gpu, default_shader_frag)
 
     sdl.GetWindowSize(window, &window_size.x, &window_size.y)
 }

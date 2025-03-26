@@ -1,3 +1,1 @@
-bin/
-dlls/*.dll
-shaders_compiled/
+build/
