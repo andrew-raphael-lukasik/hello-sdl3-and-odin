@@ -11,7 +11,7 @@ if %errorlevel% neq 0 exit /b 1
 md %~dp0bin\debug 2> nul
 move source.exe %~dp0bin\debug\%project_name%.exe
 move source.pdb %~dp0bin\debug\%project_name%.pdb
-copy %~dp0dlls\SDL3.dll %~dp0bin\debug\
+copy %~dp0source\render\redistributable_bin\SDL3.dll %~dp0bin\debug\
 
 if "%~1" == "run" (
     %~dp0bin\debug\%project_name%.exe
