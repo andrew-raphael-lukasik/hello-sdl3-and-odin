@@ -1,5 +1,6 @@
 package app
 import "core:time"
+import "../steam"
 
 
 init :: proc ()
@@ -7,14 +8,18 @@ init :: proc ()
     alive = 1;
     time_start = time.now()
     // num_ticks = sdl.GetTicks()
+
+    steam.init()
 }
 
 close :: proc ()
 {
-
+    steam.close()
 }
 
 tick :: proc ()
 {
     time_tick = time.duration_seconds(time.since(time_start))
+
+    steam.tick()
 }

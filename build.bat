@@ -12,6 +12,8 @@ md %~dp0bin\debug 2> nul
 move source.exe %~dp0bin\debug\%project_name%.exe
 move source.pdb %~dp0bin\debug\%project_name%.pdb
 copy %~dp0source\render\redistributable_bin\SDL3.dll %~dp0bin\debug\
+copy %~dp0source\steam\steamworks\redistributable_bin\win64\steam_api64.dll %~dp0bin\debug\
+copy %~dp0source\steam\steam_appid.txt %~dp0bin\debug\
 
 if "%~1" == "run" (
     %~dp0bin\debug\%project_name%.exe
