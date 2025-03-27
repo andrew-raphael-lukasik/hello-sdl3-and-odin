@@ -18,6 +18,15 @@ import "textures"
 
 init :: proc ()
 {
+    when ODIN_DEBUG
+    {
+        sdl.SetLogPriorities(.INFO)
+    }
+    else
+    {
+        sdl.SetLogPriorities(.CRITICAL)
+    }
+
     if !sdl.Init({.VIDEO})
     {
         fmt.eprintln(sdl.GetError())

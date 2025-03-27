@@ -1,5 +1,4 @@
 package main
-import sdl "vendor:sdl3"
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
@@ -57,15 +56,6 @@ main :: proc ()
         arena_init_error := virtual.arena_init_buffer(&arena, arena_buffer)
         if arena_init_error!=nil { log.panicf("Error initializing arena: %v\n", arena_init_error) }
         arena_allocator = virtual.arena_allocator(&arena)
-    }
-
-    when ODIN_DEBUG
-    {
-        sdl.SetLogPriorities(.VERBOSE)
-    }
-    else
-    {
-        sdl.SetLogPriorities(.WARN)
     }
     
     app.init()
