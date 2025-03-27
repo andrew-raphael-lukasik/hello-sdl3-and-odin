@@ -6,7 +6,7 @@
             "request": "launch",
             "preLaunchTask": "Build",
             "name": "Debug",
-            "program": "${workspaceFolder}/bin/debug/hello-sdl3.exe",
+            "program": "${workspaceFolder}/build/win64-debug/bin/hello-sdl3.exe",
             "args": [],
             "cwd": "${workspaceFolder}"
         }
