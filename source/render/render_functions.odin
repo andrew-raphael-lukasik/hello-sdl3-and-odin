@@ -50,12 +50,8 @@ init :: proc ()
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
     }
     
-    default_texture = create_texture()
-    texture_buffer_gpu := sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
-        usage = { sdl.GPUBufferUsageFlag.GRAPHICS_STORAGE_READ },
-        size =  default_quad_vertices_num_bytes,
-    })
-    transfer_buffer_queue_append(&image_pixels, nil, &sdl.GPUTextureRegion{
+    default_texture = create_default_texture()
+    transfer_buffer_queue_append(&default_texture_pixels, nil, &sdl.GPUTextureRegion{
         texture = default_texture,
         mip_level = 0,
         layer = 0,
@@ -90,7 +86,7 @@ init :: proc ()
     transfer_buffer_size:u32 = 0
     for t in transfer_buffer_queue
     {
-        transfer_buffer_size += u32(t.size);
+        transfer_buffer_size += u32(t.size)
     }
     transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
@@ -158,8 +154,8 @@ init :: proc ()
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            vertex_attributes = raw_data(vert_attrs),
-            num_vertex_attributes = u32(len(vert_attrs)),
+            vertex_attributes = raw_data(default_quad_vert_attrs),
+            num_vertex_attributes = u32(len(default_quad_vert_attrs)),
         },
         target_info = {
             num_color_targets = 1,
@@ -208,7 +204,7 @@ tick :: proc ()
 
         render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
         {
-            sdl.BindGPUGraphicsPipeline(render_pass, pipeline);
+            sdl.BindGPUGraphicsPipeline(render_pass, pipeline)
 
             sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
             sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
@@ -275,19 +271,8 @@ transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPU
     })
 }
 
-create_texture :: proc () -> ^sdl.GPUTexture
+create_default_texture :: proc () -> ^sdl.GPUTexture
 {
-    // image := sdl_image.Load("checker")
-    image := sdl.Surface{
-        flags = { sdl.SurfaceFlag.PREALLOCATED },
-        format = sdl.PixelFormat.RGBA32,
-        w = 4,
-        h = 4,
-        pitch = 4*4,
-        pixels = &image_pixels,//sdl.aligned_alloc(512,16),
-        refcount = 0,
-        reserved = nil,
-    }
     texture := sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
         type = sdl.GPUTextureType.D2,
         format = sdl.GPUTextureFormat.R8G8B8A8_UNORM,
@@ -297,5 +282,5 @@ create_texture :: proc () -> ^sdl.GPUTexture
         layer_count_or_depth = 1,
         num_levels = 1,
     })
-    return texture;
+    return texture
 }

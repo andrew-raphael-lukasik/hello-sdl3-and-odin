@@ -26,7 +26,7 @@ default_quad_vertices_num_bytes := u32(num_bytes_of(&default_quad_vertices))
 default_quad_indices := []u16 { 0, 1, 2,   0, 2, 3, }
 default_quad_indices_num_bytes := u32(num_bytes_of(&default_quad_indices))
 
-vert_attrs := []sdl.GPUVertexAttribute{
+default_quad_vert_attrs := []sdl.GPUVertexAttribute{
     {
         location = 0,
         buffer_slot = 0,
@@ -47,7 +47,7 @@ vert_attrs := []sdl.GPUVertexAttribute{
     },
 }
 
-image_pixels := []u8{
+default_texture_pixels := []u8{
     0, 0, 128, 255,         64, 0, 128, 255,        128, 0, 128, 255,       255, 0, 128, 255,
     0, 64, 128, 255,        64, 64, 128, 255,       128, 64, 128, 255,      255, 64, 128, 255,
     0, 128, 128, 255,       64, 128, 128, 255,      128, 128, 128, 255,     255, 128, 128, 255,
