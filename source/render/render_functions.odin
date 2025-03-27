@@ -53,7 +53,7 @@ init :: proc ()
     }
 
     default_texture = textures.create_default_texture(gpu)
-    transfer_buffer_queue_append(&textures.default_texture_pixels, nil, &sdl.GPUTextureRegion{
+    transfer_buffer_queue_append(source = &textures.default_texture_pixels, pixels_per_row = 4, rows_per_layer = 4, gpu_buffer_region = nil, gpu_texture_region = &sdl.GPUTextureRegion{
         texture = default_texture,
         mip_level = 0,
         layer = 0,
@@ -69,21 +69,21 @@ init :: proc ()
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
         size =  meshes.default_quad_vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&meshes.default_quad_vertices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(source = &meshes.default_quad_vertices, pixels_per_row = 4, rows_per_layer = 4, gpu_buffer_region = &sdl.GPUBufferRegion{
         buffer = vertex_buffer_gpu,
         offset = 0,
         size = meshes.default_quad_vertices_num_bytes,
-    }, nil)
+    }, gpu_texture_region = nil)
 
     index_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
         size =  meshes.default_quad_indices_num_bytes,
     })
-    transfer_buffer_queue_append(&meshes.default_quad_indices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(source = &meshes.default_quad_indices, pixels_per_row = 4, rows_per_layer = 4, gpu_buffer_region = &sdl.GPUBufferRegion{
         buffer = index_buffer_gpu,
         offset = 0,
         size = meshes.default_quad_indices_num_bytes,
-    }, nil)
+    }, gpu_texture_region = nil)
 
     transfer_buffer_size:u32 = 0
     for t in transfer_buffer_queue
@@ -127,8 +127,8 @@ init :: proc ()
                 sdl.UploadToGPUTexture(copy_pass, sdl.GPUTextureTransferInfo{
                         transfer_buffer = transfer_buffer,
                         offset = 0,
-                        pixels_per_row = 4,
-                        rows_per_layer = 4,
+                        pixels_per_row = t.pixels_per_row,
+                        rows_per_layer = t.rows_per_layer,
                     },
                     t.gpu_texture_region^,
                     false
@@ -252,7 +252,7 @@ load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderSta
     })
 }
 
-transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
+transfer_buffer_queue_append :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
 {
     offset := 0  
     {
@@ -266,11 +266,13 @@ transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPU
         transfer_buffer_offset = offset,
         size = meshes.num_bytes_of(source),
         source = raw_data(source^),
+        pixels_per_row = pixels_per_row,
+        rows_per_layer = rows_per_layer,
         gpu_buffer_region = gpu_buffer_region,
         gpu_texture_region = gpu_texture_region,
     })
 }
-transfer_buffer_queue_append_rawptr :: proc (source: rawptr, size: int, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
+transfer_buffer_queue_append_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: int, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
 {
     offset := 0  
     {
@@ -284,6 +286,8 @@ transfer_buffer_queue_append_rawptr :: proc (source: rawptr, size: int, gpu_buff
         transfer_buffer_offset = offset,
         size = size,
         source = source,
+        pixels_per_row = pixels_per_row,
+        rows_per_layer = rows_per_layer,
         gpu_buffer_region = gpu_buffer_region,
         gpu_texture_region = gpu_texture_region,
     })

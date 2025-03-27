@@ -14,6 +14,8 @@ Transfer_Buffer_Queue_Item :: struct
     transfer_buffer_offset: int,
     size: int,
     source: rawptr,
+	pixels_per_row: u32,
+	rows_per_layer: u32,
     gpu_buffer_region: ^sdl.GPUBufferRegion,
     gpu_texture_region: ^sdl.GPUTextureRegion,
 }
