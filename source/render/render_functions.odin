@@ -35,26 +35,19 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
+    dir_current := os.get_current_directory(context.temp_allocator)
+    dir_parent := filepath.dir(dir_current, context.temp_allocator)
     {
-        dir_current := os.get_current_directory(context.temp_allocator)
-        dir_parent := filepath.dir(dir_current, context.temp_allocator)
-        
-        vert_shader_spv_rawdata: []u8
-        vert_shader_spv_rawdata_path := filepath.join([]string{dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
-        vert_shader_spv_rawdata, ok = os.read_entire_file(vert_shader_spv_rawdata_path, context.temp_allocator)
-        if !ok
-        {
-            log.errorf("file read failed: '{}'", vert_shader_spv_rawdata_path)
-        }
-        frag_shader_spv_rawdata: []u8
-        frag_shader_spv_rawdata_path := filepath.join([]string{dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
-        frag_shader_spv_rawdata, ok = os.read_entire_file(frag_shader_spv_rawdata_path, context.temp_allocator)
-        if !ok
-        {
-            log.errorf("file read failed: '{}'", frag_shader_spv_rawdata_path)
-        }
-        default_shader_vert = load_shader(gpu, vert_shader_spv_rawdata, .VERTEX, 1, 0)
-        default_shader_frag = load_shader(gpu, frag_shader_spv_rawdata, .FRAGMENT, 0, 1)
+        path := filepath.join([]string{dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
+        rawdata, ok := os.read_entire_file(path, context.temp_allocator)
+        if !ok do log.errorf("file read failed: '{}'", path)
+        default_shader_vert = load_shader(gpu, rawdata, .VERTEX, 1, 0)
+    }
+    {
+        path := filepath.join([]string{dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
+        rawdata, ok := os.read_entire_file(path, context.temp_allocator)
+        if !ok do log.errorf("file read failed: '{}'", path)
+        default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
     }
     
     default_texture = create_texture()
