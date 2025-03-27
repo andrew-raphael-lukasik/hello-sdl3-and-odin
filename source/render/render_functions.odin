@@ -46,16 +46,14 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    dir_current := os.get_current_directory(context.temp_allocator)
-    dir_parent := filepath.dir(dir_current, context.temp_allocator)
     {
-        path := filepath.join([]string{dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
+        path := filepath.join([]string{app.dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_vert = load_shader(gpu, rawdata, .VERTEX, 1, 0)
     }
     {
-        path := filepath.join([]string{dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
+        path := filepath.join([]string{app.dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
