@@ -12,6 +12,8 @@ import "core:path/filepath"
 import "core:strings"
 import "core:log"
 import "../app"
+import "meshes"
+import "textures"
 
 
 init :: proc ()
@@ -49,9 +51,9 @@ init :: proc ()
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
     }
-    
-    default_texture = create_default_texture()
-    transfer_buffer_queue_append(&default_texture_pixels, nil, &sdl.GPUTextureRegion{
+
+    default_texture = textures.create_default_texture(gpu)
+    transfer_buffer_queue_append(&textures.default_texture_pixels, nil, &sdl.GPUTextureRegion{
         texture = default_texture,
         mip_level = 0,
         layer = 0,
@@ -65,22 +67,22 @@ init :: proc ()
 
     vertex_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
-        size =  default_quad_vertices_num_bytes,
+        size =  meshes.default_quad_vertices_num_bytes,
     })
-    transfer_buffer_queue_append(&default_quad_vertices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&meshes.default_quad_vertices, &sdl.GPUBufferRegion{
         buffer = vertex_buffer_gpu,
         offset = 0,
-        size = default_quad_vertices_num_bytes,
+        size = meshes.default_quad_vertices_num_bytes,
     }, nil)
 
     index_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
-        size =  default_quad_indices_num_bytes,
+        size =  meshes.default_quad_indices_num_bytes,
     })
-    transfer_buffer_queue_append(&default_quad_indices, &sdl.GPUBufferRegion{
+    transfer_buffer_queue_append(&meshes.default_quad_indices, &sdl.GPUBufferRegion{
         buffer = index_buffer_gpu,
         offset = 0,
-        size = default_quad_indices_num_bytes,
+        size = meshes.default_quad_indices_num_bytes,
     }, nil)
 
     transfer_buffer_size:u32 = 0
@@ -150,12 +152,12 @@ init :: proc ()
         vertex_input_state = {
             vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
                 slot = 0,
-                pitch = size_of(Vertex_Data),
+                pitch = size_of(meshes.Vertex_Data),
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            vertex_attributes = raw_data(default_quad_vert_attrs),
-            num_vertex_attributes = u32(len(default_quad_vert_attrs)),
+            vertex_attributes = raw_data(meshes.default_quad_vert_attrs),
+            num_vertex_attributes = u32(len(meshes.default_quad_vert_attrs)),
         },
         target_info = {
             num_color_targets = 1,
@@ -224,7 +226,7 @@ tick :: proc ()
                 1
             )
             
-            sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(default_quad_indices)), 1, 0, 0, 0)
+            sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(meshes.default_quad_indices)), 1, 0, 0, 0)
         }
         sdl.EndGPURenderPass(render_pass)
     }
@@ -236,8 +238,6 @@ tick :: proc ()
     ok = sdl.SubmitGPUCommandBuffer(cmd_buf)
     assert(ok)
 }
-
-num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }
 
 load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderStage, num_uniform_buffers: u32, num_samplers: u32) -> ^sdl.GPUShader
 {
@@ -264,23 +264,27 @@ transfer_buffer_queue_append :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPU
     }
     append(&transfer_buffer_queue, Transfer_Buffer_Queue_Item{
         transfer_buffer_offset = offset,
-        size = num_bytes_of(source),
+        size = meshes.num_bytes_of(source),
         source = raw_data(source^),
         gpu_buffer_region = gpu_buffer_region,
         gpu_texture_region = gpu_texture_region,
     })
 }
-
-create_default_texture :: proc () -> ^sdl.GPUTexture
+transfer_buffer_queue_append_rawptr :: proc (source: rawptr, size: int, gpu_buffer_region: ^sdl.GPUBufferRegion, gpu_texture_region: ^sdl.GPUTextureRegion,)
 {
-    texture := sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
-        type = sdl.GPUTextureType.D2,
-        format = sdl.GPUTextureFormat.R8G8B8A8_UNORM,
-        usage = { sdl.GPUTextureUsageFlag.SAMPLER },
-        width = 4,
-        height = 4,
-        layer_count_or_depth = 1,
-        num_levels = 1,
+    offset := 0  
+    {
+        l := len(transfer_buffer_queue)
+        if l!=0
+        {
+            offset = transfer_buffer_queue[l-1].transfer_buffer_offset + transfer_buffer_queue[l-1].size
+        }
+    }
+    append(&transfer_buffer_queue, Transfer_Buffer_Queue_Item{
+        transfer_buffer_offset = offset,
+        size = size,
+        source = source,
+        gpu_buffer_region = gpu_buffer_region,
+        gpu_texture_region = gpu_texture_region,
     })
-    return texture
 }
