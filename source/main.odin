@@ -5,16 +5,24 @@ import "core:mem"
 import "core:mem/virtual"
 import "core:os"
 import "core:path/filepath"
+import "base:runtime"
+import "core:debug/trace"
 import "render"
 import "input"
 import "app"
 import "game"
 
 
+default_assertion_failure_proc: runtime.Assertion_Failure_Proc
+
+
 main :: proc ()
 {
     when ODIN_DEBUG
     {
+        default_assertion_failure_proc = context.assertion_failure_proc
+        context.assertion_failure_proc = on_assertion_failure
+
         logger := log.create_console_logger()
         context.logger = logger
         {
@@ -85,4 +93,12 @@ main :: proc ()
         for key, value in tracking_allocator.allocation_map { log.errorf("%v: Leaked %v bytes\n", value.location, value.size) }
         for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
     }
+}
+
+// readme: https://pkg.odin-lang.org/core/debug/trace/
+on_assertion_failure :: proc(prefix, message: string, loc := #caller_location) -> !
+{
+    log.errorf("Asserion '{}' failed, loc: {}", message, loc)
+    default_assertion_failure_proc(prefix, message,loc)
+    // runtime.trap()
 }
