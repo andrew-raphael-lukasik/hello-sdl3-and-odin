@@ -11,10 +11,10 @@ main :: proc ()
 {
     when ODIN_DEBUG
     {
-        context = logging.init(context)
+        context = logging.init()
     }
 
-    app.init()
+    context = app.init()
     game.init()
     input.init()
     render.init()

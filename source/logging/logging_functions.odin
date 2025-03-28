@@ -20,9 +20,9 @@ foreign kernel32
 }
 
 
-init :: proc(cxt: runtime.Context, lowest: log.Level = log.Level.Debug) -> runtime.Context
+init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
 {
-    logging_context = cxt
+    logging_context = context
     
     default_assertion_failure_proc = logging_context.assertion_failure_proc
     logging_context.assertion_failure_proc = on_assertion_failure

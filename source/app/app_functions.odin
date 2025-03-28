@@ -7,11 +7,19 @@ import "core:mem"
 import "core:mem/virtual"
 import "core:strings"
 import "core:log"
+import "base:runtime"
 import "../steam"
 
 
-init :: proc ()
+init :: proc () -> runtime.Context
 {
+    when ODIN_DEBUG
+    {
+        mem.tracking_allocator_init(&tracking_allocator, context.allocator)
+        default_allocator = context.allocator
+        context.allocator = mem.tracking_allocator((&tracking_allocator))
+    }
+
     alive = 1;
     time_start = time.now()
     // num_ticks = sdl.GetTicks()
@@ -28,23 +36,21 @@ init :: proc ()
 
     arena_buffer = make([]byte, 1024*1024)
     {
-        arena: virtual.Arena
         arena_init_error := virtual.arena_init_buffer(&arena, arena_buffer)
         if arena_init_error!=nil { log.panicf("Error initializing arena: %v\n", arena_init_error) }
         arena_allocator = virtual.arena_allocator(&arena)
     }
 
-    default_allocator := context.allocator
-    when ODIN_DEBUG
-    {
-        mem.tracking_allocator_init(&tracking_allocator, context.allocator)
-        context.allocator = mem.tracking_allocator((&tracking_allocator))
-    }
+    app_context = context
+    return app_context
 }
 
 close :: proc ()
 {
+    virtual.arena_free_all(&arena)
     delete(arena_buffer)
+    delete(dir_current)
+    delete(dir_parent)
     
     steam.close()
 
