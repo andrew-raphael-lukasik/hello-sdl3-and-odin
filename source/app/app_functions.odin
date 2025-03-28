@@ -4,7 +4,9 @@ import win "core:sys/windows"
 import "core:os"
 import "core:path/filepath"
 import "core:mem"
+import "core:mem/virtual"
 import "core:strings"
+import "core:log"
 import "../steam"
 
 
@@ -23,11 +25,34 @@ init :: proc ()
     {
         alive = 0
     }
+
+    arena_buffer = make([]byte, 1024*1024)
+    {
+        arena: virtual.Arena
+        arena_init_error := virtual.arena_init_buffer(&arena, arena_buffer)
+        if arena_init_error!=nil { log.panicf("Error initializing arena: %v\n", arena_init_error) }
+        arena_allocator = virtual.arena_allocator(&arena)
+    }
+
+    default_allocator := context.allocator
+    when ODIN_DEBUG
+    {
+        mem.tracking_allocator_init(&tracking_allocator, context.allocator)
+        context.allocator = mem.tracking_allocator((&tracking_allocator))
+    }
 }
 
 close :: proc ()
 {
+    delete(arena_buffer)
+    
     steam.close()
+
+    when ODIN_DEBUG
+    {
+        for key, value in tracking_allocator.allocation_map { log.errorf("%v: Leaked %v bytes\n", value.location, value.size) }
+        for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
+    }
 }
 
 tick :: proc ()
