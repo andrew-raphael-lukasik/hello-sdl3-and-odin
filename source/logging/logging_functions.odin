@@ -2,10 +2,12 @@ package logging
 import win "core:sys/windows"
 import "core:log"
 import "core:fmt"
+import "core:encoding/ansi"
 import "base:runtime"
 import "core:strings"
 import "core:os"
 import "core:path/filepath"
+import "core:time"
 
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "stdcall")
@@ -116,7 +118,14 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_SXS_EARLY_DEACTIVATION: ex_codename = "SXS_EARLY_DEACTIVATION"
         case STATUS_SXS_INVALID_DEACTIVATION: ex_codename = "SXS_INVALID_DEACTIVATION"
     }
-    log.errorf("Exception thrown at {} in ______: %x: {} location _____", ex_rec.ExceptionAddress, ex_rec.ExceptionCode, ex_codename)
+
+    ANSI_RESET :: ansi.CSI + ansi.RESET + ansi.SGR
+    ANSI_MAGENTA :: ansi.CSI + ansi.FG_MAGENTA + ansi.SGR
+    ANSI_BOLD :: ansi.CSI + ansi.BOLD + ansi.SGR
+    t := time.now()
+    h, m, s := time.clock_from_time(t)
+    date, _ := time.time_to_datetime(t)
+    fmt.printfln("{}[EXCEPTION]{} --- [%04d-%02d-%02d %02d:%02d:%02d] Exception thrown at {} in ______: %x: {}{}{} location _____", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, ex_rec.ExceptionAddress, ex_rec.ExceptionCode, ANSI_BOLD, ex_codename, ANSI_RESET)
     return 0
 }
 
