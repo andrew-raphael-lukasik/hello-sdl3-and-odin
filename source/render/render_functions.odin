@@ -47,13 +47,13 @@ init :: proc ()
     assert(ok)
 
     {
-        path := filepath.join([]string{app.dir_parent, "/data/default_shader.spv.vert"}, context.temp_allocator)
+        path := app.path_to_abs("/data/default_shader.spv.vert", context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_vert = load_shader(gpu, rawdata, .VERTEX, 1, 0)
     }
     {
-        path := filepath.join([]string{app.dir_parent, "/data/default_shader.spv.frag"}, context.temp_allocator)
+        path := app.path_to_abs("/data/default_shader.spv.frag", context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
@@ -271,7 +271,7 @@ transfer_buffer_queue_append :: proc (source: ^[]$E, pixels_per_row: u32, rows_p
     }
     append(&transfer_buffer_queue, Transfer_Buffer_Queue_Item{
         transfer_buffer_offset = offset,
-        size = meshes.num_bytes_of(source),
+        size = app.num_bytes_of(source),
         source = raw_data(source^),
         pixels_per_row = pixels_per_row,
         rows_per_layer = rows_per_layer,

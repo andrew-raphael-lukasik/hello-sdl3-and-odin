@@ -5,4 +5,3 @@ import "vendor:cgltf"
 import "core:log"
 
 
-num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }

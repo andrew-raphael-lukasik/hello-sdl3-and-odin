@@ -2,8 +2,6 @@ package main
 import "core:log"
 import "core:mem"
 import "core:mem/virtual"
-import "base:runtime"
-import "core:debug/trace"
 import "render"
 import "input"
 import "app"
