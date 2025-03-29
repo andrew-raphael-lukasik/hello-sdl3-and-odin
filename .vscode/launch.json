@@ -8,7 +8,7 @@
             "name": "Debug",
             "program": "${workspaceFolder}/build/win64-debug/bin/hello-sdl3.exe",
             "args": [],
-            "cwd": "${workspaceFolder}/build/win64-debug/bin"
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
