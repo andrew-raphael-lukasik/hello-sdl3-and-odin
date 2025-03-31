@@ -85,7 +85,13 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_LONGJUMP: ex_codename = "LONGJUMP"
         case STATUS_UNWIND_CONSOLIDATE: ex_codename = "UNWIND_CONSOLIDATE"
         case DBG_EXCEPTION_NOT_HANDLED: ex_codename = "EXCEPTION_NOT_HANDLED"
-        case STATUS_ACCESS_VIOLATION: ex_codename = "ACCESS_VIOLATION"
+        case STATUS_ACCESS_VIOLATION:
+        {
+            ex_codename = "ACCESS_VIOLATION"
+            access_type_code := cast(uintptr) ex.ExceptionRecord.ExceptionInformation[0]
+            if access_type_code==0 do ex_codename = "ACCESS_VIOLATION Reading"
+            else if access_type_code==1 do ex_codename = "ACCESS_VIOLATION Writing"
+        }
         case STATUS_IN_PAGE_ERROR: ex_codename = "IN_PAGE_ERROR"
         case STATUS_INVALID_HANDLE: ex_codename = "INVALID_HANDLE"
         case STATUS_INVALID_PARAMETER: ex_codename = "INVALID_PARAMETER"
