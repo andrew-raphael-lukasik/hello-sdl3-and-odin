@@ -73,11 +73,27 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case DBG_TERMINATE_THREAD: ex_codename = "TERMINATE_THREAD"
         case DBG_TERMINATE_PROCESS: ex_codename = "TERMINATE_PROCESS"
         case DBG_CONTROL_C: ex_codename = "CONTROL_C"
-        case DBG_PRINTEXCEPTION_C: ex_codename = "PRINTEXCEPTION_C"
+        case DBG_PRINTEXCEPTION_C:
+        {
+            // ex_codename = "PRINTEXCEPTION_C"
+            message := cast(cstring) ex.ExceptionRecord.ExceptionInformation[1]
+            fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            return EXCEPTION_CONTINUE_SEARCH
+        }
         case DBG_RIPEXCEPTION: ex_codename = "RIPEXCEPTION"
         case DBG_CONTROL_BREAK: ex_codename = "CONTROL_BREAK"
         case DBG_COMMAND_EXCEPTION: ex_codename = "COMMAND_EXCEPTION"
-        case DBG_PRINTEXCEPTION_WIDE_C: ex_codename = "PRINTEXCEPTION_WIDE_C"
+        case DBG_PRINTEXCEPTION_WIDE_C:
+        {
+            // ex_codename = "PRINTEXCEPTION_WIDE_C"
+            wstr_ptr := cast(^u16) ex.ExceptionRecord.ExceptionInformation[1]
+            utf8_str := win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, nil, 0, nil, nil)
+            buf := make([]byte, utf8_str, context.temp_allocator)
+            win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, &buf[0], utf8_str, nil, nil)
+            message := string(buf[:utf8_str-1])
+            fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            return EXCEPTION_CONTINUE_SEARCH
+        }
         case STATUS_GUARD_PAGE_VIOLATION: ex_codename = "GUARD_PAGE_VIOLATION"
         case STATUS_DATATYPE_MISALIGNMENT: ex_codename = "DATATYPE_MISALIGNMENT"
         case STATUS_BREAKPOINT: ex_codename = "BREAKPOINT"
