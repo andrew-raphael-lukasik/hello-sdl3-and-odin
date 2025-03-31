@@ -67,6 +67,8 @@ STATUS_ENCLAVE_VIOLATION :: 0xC00004A2
 STATUS_SXS_EARLY_DEACTIVATION :: 0xC015000F
 STATUS_SXS_INVALID_DEACTIVATION :: 0xC0150010
 
+MS_VC_EXCEPTION :: 0x406D1388// readme: https://learn.microsoft.com/en-us/visualstudio/debugger/tips-for-debugging-threads?view=vs-2022&tabs=csharp#set-a-thread-name-by-throwing-an-exception
+
 ANSI_RESET :: ansi.CSI + ansi.RESET + ansi.SGR
 ANSI_MAGENTA :: ansi.CSI + ansi.FG_MAGENTA + ansi.SGR
 ANSI_GREY :: ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR

@@ -120,6 +120,13 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_ENCLAVE_VIOLATION: ex_codename = "ENCLAVE_VIOLATION"
         case STATUS_SXS_EARLY_DEACTIVATION: ex_codename = "SXS_EARLY_DEACTIVATION"
         case STATUS_SXS_INVALID_DEACTIVATION: ex_codename = "SXS_INVALID_DEACTIVATION"
+        case MS_VC_EXCEPTION:
+        {
+            // ex_codename = "MS_VC_EXCEPTION"
+            // This is a Visual Studio-related non-exception that sets a thread name by throwing an exception
+            // Readme: https://learn.microsoft.com/en-us/visualstudio/debugger/tips-for-debugging-threads?view=vs-2022&tabs=csharp#set-a-thread-name-by-throwing-an-exception
+            return EXCEPTION_CONTINUE_EXECUTION
+        }
     }
 
     exception_address := ex_rec.ExceptionAddress
