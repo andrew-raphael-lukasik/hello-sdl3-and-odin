@@ -1,5 +1,6 @@
 package logging
 import "base:runtime"
+import "core:encoding/ansi"
 
 
 logging_context : runtime.Context
@@ -65,3 +66,8 @@ STATUS_ASSERTION_FAILURE :: 0xC0000420
 STATUS_ENCLAVE_VIOLATION :: 0xC00004A2
 STATUS_SXS_EARLY_DEACTIVATION :: 0xC015000F
 STATUS_SXS_INVALID_DEACTIVATION :: 0xC0150010
+
+ANSI_RESET :: ansi.CSI + ansi.RESET + ansi.SGR
+ANSI_MAGENTA :: ansi.CSI + ansi.FG_MAGENTA + ansi.SGR
+ANSI_GREY :: ansi.CSI + ansi.FG_BRIGHT_BLACK + ansi.SGR
+ANSI_BOLD :: ansi.CSI + ansi.BOLD + ansi.SGR

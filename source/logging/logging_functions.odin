@@ -2,7 +2,6 @@ package logging
 import win "core:sys/windows"
 import "core:log"
 import "core:fmt"
-import "core:encoding/ansi"
 import "base:runtime"
 import "core:strings"
 import "core:os"
@@ -52,9 +51,13 @@ init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
 vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> win.LONG
 {
     context = logging_context// so logging_context's logger can forward this
-    ex_rec := ex.ExceptionRecord;
 
-    ex_codename: string
+    t := time.now()
+    h, m, s := time.clock_from_time(t)
+    date, _ := time.time_to_datetime(t)
+
+    ex_codename: string = "<unrecognized>"
+    ex_rec := ex.ExceptionRecord;
     switch ex_rec.ExceptionCode
     {
         case STATUS_WAIT_0: ex_codename = "WAIT_0"
@@ -119,14 +122,15 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_SXS_INVALID_DEACTIVATION: ex_codename = "SXS_INVALID_DEACTIVATION"
     }
 
-    ANSI_RESET :: ansi.CSI + ansi.RESET + ansi.SGR
-    ANSI_MAGENTA :: ansi.CSI + ansi.FG_MAGENTA + ansi.SGR
-    ANSI_BOLD :: ansi.CSI + ansi.BOLD + ansi.SGR
-    t := time.now()
-    h, m, s := time.clock_from_time(t)
-    date, _ := time.time_to_datetime(t)
-    fmt.printfln("{}[EXCEPTION]{} --- [%04d-%02d-%02d %02d:%02d:%02d] Exception thrown at {} in ______: %x: {}{}{} location _____", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, ex_rec.ExceptionAddress, ex_rec.ExceptionCode, ANSI_BOLD, ex_codename, ANSI_RESET)
-    return 0
+    exception_address := ex_rec.ExceptionAddress
+    module_name := get_module_name()
+    exception_code := ex_rec.ExceptionCode
+    access_address := ex_rec.ExceptionInformation[1]
+    fmt.printfln("{}[EXCEPTION]{} --- [%04d-%02d-%02d %02d:%02d:%02d] Exception thrown at {} in %s: %x: {}{}{} location {}", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, exception_address, module_name, exception_code, ANSI_BOLD, ex_codename, ANSI_RESET, access_address)
+    
+    EXCEPTION_CONTINUE_EXECUTION :: -1// continues program execution
+    EXCEPTION_CONTINUE_SEARCH :: 0// breaks program execution
+    return EXCEPTION_CONTINUE_SEARCH
 }
 
 // readme: https://pkg.odin-lang.org/core/debug/trace/
@@ -135,4 +139,20 @@ on_assertion_failure :: proc(prefix, message: string, loc := #caller_location) -
     log.errorf("Asserion '{}' failed, loc: {}", message, loc)
     default_assertion_failure_proc(prefix, message,loc)
     // runtime.trap()
+}
+
+get_module_name :: proc() -> string
+{
+    h_module := win.GetModuleHandleW(nil)
+    if h_module!=nil {
+        module_name_buf := make([]u16, 256)
+        if win.GetModuleFileNameW(h_module, &module_name_buf[0], u32(len(module_name_buf)))!=0
+        {
+            utf8_str := win.WideCharToMultiByte(win.CP_UTF8, 0, &module_name_buf[0], -1, nil, 0, nil, nil)
+            buf := make([]byte, utf8_str, context.temp_allocator)
+            win.WideCharToMultiByte(win.CP_UTF8, 0, &module_name_buf[0], -1, &buf[0], utf8_str, nil, nil)
+            return string(buf[:utf8_str-1])
+        }
+    }
+    return "<unknown>"
 }
