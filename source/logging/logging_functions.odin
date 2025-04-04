@@ -84,9 +84,13 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case DBG_CONTROL_C: ex_codename = "CONTROL_C"
         case DBG_PRINTEXCEPTION_C:
         {
-            // ex_codename = "PRINTEXCEPTION_C"
-            message := cast(cstring) ex.ExceptionRecord.ExceptionInformation[1]
-            fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            ex_codename = "PRINTEXCEPTION_C"
+            
+            // NOTE: handling both DBG_PRINTEXCEPTION_C and DBG_PRINTEXCEPTION_WIDE_C leads to duplicated VSCode->Terminal's log messages so I choose one and disable the other here
+            
+            // message := cast(cstring) ex.ExceptionRecord.ExceptionInformation[1]
+            // fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+
             return EXCEPTION_CONTINUE_SEARCH
         }
         case DBG_RIPEXCEPTION: ex_codename = "RIPEXCEPTION"
@@ -94,13 +98,15 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case DBG_COMMAND_EXCEPTION: ex_codename = "COMMAND_EXCEPTION"
         case DBG_PRINTEXCEPTION_WIDE_C:
         {
-            // ex_codename = "PRINTEXCEPTION_WIDE_C"
+            ex_codename = "PRINTEXCEPTION_WIDE_C"
+            
             wstr_ptr := cast(^u16) ex.ExceptionRecord.ExceptionInformation[1]
             utf8_str := win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, nil, 0, nil, nil)
             buf := make([]byte, utf8_str, context.temp_allocator)
             win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, &buf[0], utf8_str, nil, nil)
             message := string(buf[:utf8_str-1])
             fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            
             return EXCEPTION_CONTINUE_SEARCH
         }
         case STATUS_GUARD_PAGE_VIOLATION: ex_codename = "GUARD_PAGE_VIOLATION"
@@ -153,7 +159,7 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_SXS_INVALID_DEACTIVATION: ex_codename = "SXS_INVALID_DEACTIVATION"
         case MS_VC_EXCEPTION:
         {
-            // ex_codename = "MS_VC_EXCEPTION"
+            ex_codename = "MS_VC_EXCEPTION"
             // This is a Visual Studio-related non-exception that sets a thread name by throwing an exception
             // Readme: https://learn.microsoft.com/en-us/visualstudio/debugger/tips-for-debugging-threads?view=vs-2022&tabs=csharp#set-a-thread-name-by-throwing-an-exception
             return EXCEPTION_CONTINUE_EXECUTION
@@ -174,9 +180,10 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
 // readme: https://pkg.odin-lang.org/core/debug/trace/
 on_assertion_failure :: proc(prefix, message: string, loc := #caller_location) -> !
 {
-    log.errorf("Asserion '{}' failed, loc: {}", message, loc)
-    default_assertion_failure_proc(prefix, message,loc)
-    // runtime.trap()
+    log.errorf("{}[ASSERT]{} Assertion '{}' failed, loc: {}", ANSI_MAGENTA, ANSI_RESET, message, loc)
+    default_assertion_failure_proc(prefix, message,loc)// default assertion proc
+    // win.ExitProcess(1)// closes the app
+    // runtime.trap()// end
 }
 
 get_module_name :: proc() -> string
