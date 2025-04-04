@@ -16,6 +16,9 @@ foreign kernel32
         first: win.ULONG,
         handler: rawptr
     ) -> rawptr ---
+    RemoveVectoredExceptionHandler :: proc(
+        handler: rawptr
+    ) -> win.ULONG ---
 }
 
 
@@ -46,6 +49,12 @@ init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
     if handler_ptr==nil do log.error("AddVectoredExceptionHandler returned a nil")
 
     return logging_context
+}
+
+close :: proc()
+{
+    if logging_context.logger.data!=nil do log.destroy_multi_logger(logging_context.logger, logging_context.allocator)
+    RemoveVectoredExceptionHandler(cast(rawptr) vectored_exception_handler)
 }
 
 vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> win.LONG

@@ -31,4 +31,9 @@ main :: proc ()
     input.close()
     render.close()
     app.close()
+    when ODIN_DEBUG
+    {
+        log.debug("Application closed")
+        logging.close()
+    }
 }
