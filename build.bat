@@ -3,13 +3,20 @@ set build_name=win64-debug
 set build_path=%~dp0build\%build_name%
 
 @REM TODO: at some point figure out a better way of preparing data files
+if exist "%build_path%" (
+    echo Build directory exists, clearing it's content before build starts...
+    del /q /s "%build_path%\*.*"
+    for /f "delims=" %%d in ('dir /s /b /ad "%build_path%\*"') do (
+        rd /s /q "%%d"
+    )
+)
 md %build_path%\data 2> nul
 glslc ./shaders/default_shader.glsl.vert -o %build_path%/data/default_shader.spv.vert
 if %errorlevel% neq 0 exit /b 1
 glslc ./shaders/default_shader.glsl.frag -o %build_path%/data/default_shader.spv.frag
 if %errorlevel% neq 0 exit /b 1
-copy %~dp0assets\default_cube.gltf %build_path%\data\
-copy %~dp0assets\default_texture.png %build_path%\data\
+copy "%~dp0assets\default_cube.gltf" %build_path%\data\
+copy "%~dp0assets\texture-00.png" %build_path%\data\
 
 odin build ./source/ -debug
 if %errorlevel% neq 0 exit /b 1

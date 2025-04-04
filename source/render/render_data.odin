@@ -13,4 +13,5 @@ index_buffer_gpu: ^sdl.GPUBuffer
 default_texture: ^sdl.GPUTexture
 default_shader_vert: ^sdl.GPUShader
 default_shader_frag: ^sdl.GPUShader
-transfer_buffer_queue := make([dynamic]Transfer_Buffer_Queue_Item, 0, 32)
+gpu_mesh_buffer_transfer_queue := make([dynamic]UploadToGPUBuffer_Queue_Data, 0, 32)
+gpu_texture_buffer_transfer_queue := make([dynamic]UploadToGPUTexture_Queue_Data, 0, 32)
