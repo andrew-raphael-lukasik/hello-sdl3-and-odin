@@ -127,7 +127,18 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
         case STATUS_INVALID_HANDLE: ex_codename = "INVALID_HANDLE"
         case STATUS_INVALID_PARAMETER: ex_codename = "INVALID_PARAMETER"
         case STATUS_NO_MEMORY: ex_codename = "NO_MEMORY"
-        case STATUS_ILLEGAL_INSTRUCTION: ex_codename = "ILLEGAL_INSTRUCTION"
+        case STATUS_ILLEGAL_INSTRUCTION:
+        {
+            ex_codename = "ILLEGAL_INSTRUCTION"
+            
+            // This is immediate program termination or a system crash potentially
+            // TODO: Make file logger write it's remaning messages to a log file now
+            // TODO: Print state of registers, etc
+            
+            fmt.printf("Illegal CPU instruction exception occurred. The program will be terminated.")
+            win.ExitProcess(1)
+            // return EXCEPTION_CONTINUE_SEARCH
+        }
         case STATUS_NONCONTINUABLE_EXCEPTION: ex_codename = "NONCONTINUABLE_EXCEPTION"
         case STATUS_INVALID_DISPOSITION: ex_codename = "INVALID_DISPOSITION"
         case STATUS_ARRAY_BOUNDS_EXCEEDED: ex_codename = "ARRAY_BOUNDS_EXCEEDED"
