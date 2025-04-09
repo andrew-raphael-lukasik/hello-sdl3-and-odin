@@ -56,7 +56,7 @@ close :: proc ()
 
     when ODIN_DEBUG
     {
-        for key, value in tracking_allocator.allocation_map { log.errorf("%v: Leaked %v bytes\n", value.location, value.size) }
+        for key, value in tracking_allocator.allocation_map { log.warnf("%v: Leaked %v bytes\n", value.location, value.size) }
         for value in tracking_allocator.bad_free_array { log.errorf("Bad free at: %v\n", value.location) }
     }
 }
