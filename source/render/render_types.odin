@@ -21,7 +21,7 @@ UploadToGPUTexture_Queue_Data :: struct
     transfer_buffer_offset: int,
     size: int,
     source: rawptr,
-	pixels_per_row: u32,
-	rows_per_layer: u32,
+    pixels_per_row: u32,
+    rows_per_layer: u32,
     gpu_texture_region: ^sdl.GPUTextureRegion,
 }
