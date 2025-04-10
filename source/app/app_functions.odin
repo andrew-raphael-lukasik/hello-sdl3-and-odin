@@ -63,7 +63,9 @@ close :: proc ()
 
 tick :: proc ()
 {
+    time_tick_prev := time_tick
     time_tick = time.duration_seconds(time.since(time_start))
+    time_delta = time_tick - time_tick_prev
 
     steam.tick()
 }

@@ -7,8 +7,9 @@ import "base:runtime"
 
 alive : byte
 
-time_tick: f64 = 0;
 time_start: time.Time
+time_tick: f64 = 0;
+time_delta: f64 = 0;
 
 dir_current: string
 dir_parent: string
