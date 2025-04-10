@@ -11,7 +11,7 @@ default_quad_vertices : []Vertex_Data = {
 }
 default_quad_vertices_num_bytes := app.num_bytes_of_u32(&default_quad_vertices)
 
-default_quad_indices := []u16 { 0, 1, 2,   0, 2, 3, }
+default_quad_indices := []u32 { 0, 1, 2,   0, 2, 3, }
 default_quad_indices_num_bytes := app.num_bytes_of_u32(&default_quad_indices)
 
 default_quad_vert_attrs := []sdl.GPUVertexAttribute{

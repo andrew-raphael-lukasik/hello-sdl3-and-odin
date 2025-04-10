@@ -287,7 +287,7 @@ tick :: proc ()
             sdl.BindGPUGraphicsPipeline(render_pass, pipeline)
 
             sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
-            sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
+            sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._32BIT)
 
             ubo := Uniform_Buffer_Object{
                 mvp = proj_matrix * model_matrix,
