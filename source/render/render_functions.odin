@@ -130,6 +130,22 @@ init :: proc ()
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
 
+    quad_transform: matrix[4,4]f32 = {
+        9, 0, 0, 0,
+        0, 9, 0, 0,
+        0, 0, 9, -10,
+        0, 0, 0, 1,
+    }
+    append(&draw_calls, Draw_Call_Data{
+        model_matrix = quad_transform,
+        index_buffer = index_buffer_gpu,
+        index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
+        index_buffer_offset = 0,
+        vertex_buffer = vertex_buffer_gpu,
+        vertex_buffer_offset = 0,
+        vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
+    })
+
     vertex_transfer_buffer_size := u32(vertex_transfer_buffer_position)
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
@@ -262,13 +278,13 @@ tick :: proc ()
 {
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
-    model_matrix := linalg.Matrix4x4f32(linalg.matrix3_scale_f32(linalg.Vector3f32{9,9,9})) * linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_tick) * 0.23, linalg.Vector3f32{0,1,0})
-    model_matrix[3][0] = 0
-    model_matrix[3][1] = 0
-    model_matrix[3][2] = -10
+    
+    if len(draw_calls)!=0
+    {
+        draw_calls[0].model_matrix *= linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * 0.23, linalg.Vector3f32{0,1,0})
+    }
 
     cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
-
     swapchain_tex : ^sdl.GPUTexture
     ok := sdl.WaitAndAcquireGPUSwapchainTexture(cmd_buf , window , &swapchain_tex , nil , nil)
     assert(ok)
@@ -286,25 +302,28 @@ tick :: proc ()
         {
             sdl.BindGPUGraphicsPipeline(render_pass, pipeline)
 
-            sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = vertex_buffer_gpu, offset = 0}, 1)
-            sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = index_buffer_gpu, offset = 0}, sdl.GPUIndexElementSize._16BIT)
+            for draw in draw_calls
+            {
+                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = draw.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
+                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = draw.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_element_size)
 
-            ubo := Uniform_Buffer_Object{
-                mvp = proj_matrix * model_matrix,
-                model = model_matrix,
-                view = view_matrix,
-                proj = proj_matrix,
+                ubo := Uniform_Buffer_Object{
+                    mvp = proj_matrix * draw.model_matrix,
+                    model = draw.model_matrix,
+                    view = view_matrix,
+                    proj = proj_matrix,
+                }
+                sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
+
+                sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
+                        texture = default_texture,
+                        sampler = sampler,
+                    },
+                    1
+                )
+
+                sdl.DrawGPUIndexedPrimitives(render_pass, draw.vertex_buffer_num_indices, 1, 0, 0, 0)
             }
-            sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
-
-            sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
-                    texture = default_texture,
-                    sampler = sampler,
-                },
-                1
-            )
-            
-            sdl.DrawGPUIndexedPrimitives(render_pass, u32(len(meshes.default_quad_indices)), 1, 0, 0, 0)
         }
         sdl.EndGPURenderPass(render_pass)
     }

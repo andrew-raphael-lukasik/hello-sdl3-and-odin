@@ -25,3 +25,16 @@ UploadToGPUTexture_Queue_Data :: struct
     rows_per_layer: u32,
     gpu_texture_region: ^sdl.GPUTextureRegion,
 }
+
+Draw_Call_Data :: struct
+{
+    model_matrix: matrix[4, 4]f32,
+
+    index_buffer: ^sdl.GPUBuffer,
+    index_buffer_element_size: sdl.GPUIndexElementSize,
+    index_buffer_offset: u32,
+
+    vertex_buffer: ^sdl.GPUBuffer,
+    vertex_buffer_offset: u32,
+    vertex_buffer_num_indices: u32,
+}
