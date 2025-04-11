@@ -295,6 +295,12 @@ tick :: proc ()
 {
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
+    for comp in game.components[game.main_camera] {
+        if tc, is := comp.(game.Transform_Component); is {
+            view_matrix = tc.value
+            break
+        }
+    }
 
     // rebuild list of draw calls
     clear(&renderer.draw_calls)
