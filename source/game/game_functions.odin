@@ -68,8 +68,11 @@ tick :: proc ()
         for comp in comps {
             if transform, is := comp.(Transform_Component); is {
                 dt := f32(app.time_delta)
+                left := -linalg.normalize([3]f32{transform.value[0][0], transform.value[0][1], transform.value[0][2]})
+                forward := linalg.normalize([3]f32{transform.value[2][0], transform.value[2][1], transform.value[2][2]})
+                step := (left * input.move[0] + forward * input.move[1]) * dt * 10
                 comps[comp_index] = Transform_Component{
-                    value = transform.value * linalg.matrix4_translate_f32([3]f32{-input.move[0]*10*dt, 0, input.move[1]*10*dt})
+                    value = transform.value * linalg.matrix4_translate_f32(step)
                 }
             }
         }
