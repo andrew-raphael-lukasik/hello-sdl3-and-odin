@@ -15,10 +15,10 @@ Renderer_State :: struct
     sampler: ^sdl.GPUSampler,
 
     vertex_buffer: ^sdl.GPUBuffer,
-    vertex_buffer_position: u32,
+    vertex_buffer_offset: u32,
     
     index_buffer: ^sdl.GPUBuffer,
-    index_buffer_position: u32,
+    index_buffer_offset: u32,
 
     draw_calls: [dynamic]Draw_Call_Data,
 }

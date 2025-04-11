@@ -55,13 +55,13 @@ init :: proc ()
             usage = { sdl.GPUBufferUsageFlag.VERTEX },
             size = 32_000 * size_of(meshes.Vertex_Data),
         }),
-        vertex_buffer_position = 0,
+        vertex_buffer_offset = 0,
         
         index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
             usage = { sdl.GPUBufferUsageFlag.INDEX },
             size =  32_000 * 2,
         }),
-        index_buffer_position = 0,
+        index_buffer_offset = 0,
 
         draw_calls = make([dynamic]Draw_Call_Data, 0, 32),
     }
@@ -126,20 +126,23 @@ init :: proc ()
         source = &meshes.default_quad_vertices,
         gpu_buffer_region = &sdl.GPUBufferRegion{
             buffer = renderer.vertex_buffer,
-            offset = 0,
+            offset = renderer.vertex_buffer_offset,
             size = meshes.default_quad_vertices_num_bytes,
         },
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
+    renderer.vertex_buffer_offset += meshes.default_quad_vertices_num_bytes
+
     schedule_upload_to_gpu_buffer(
         source = &meshes.default_quad_indices,
         gpu_buffer_region = &sdl.GPUBufferRegion{
             buffer = renderer.index_buffer,
-            offset = 0,
+            offset = renderer.index_buffer_offset,
             size = meshes.default_quad_indices_num_bytes,
         },
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
+    renderer.index_buffer_offset += meshes.default_quad_indices_num_bytes
 
     // create quad entity
     game.create_entity_and_components(
@@ -372,7 +375,14 @@ tick :: proc ()
                     1
                 )
 
-                sdl.DrawGPUIndexedPrimitives(render_pass, draw.vertex_buffer_num_indices, 1, 0, 0, 0)
+                sdl.DrawGPUIndexedPrimitives(
+                    render_pass = render_pass,
+                    num_indices = draw.vertex_buffer_num_indices,
+                    num_instances = 1,
+                    first_index = 0,
+                    vertex_offset = 0,
+                    first_instance = 0,
+                )
             }
         }
         sdl.EndGPURenderPass(render_pass)
