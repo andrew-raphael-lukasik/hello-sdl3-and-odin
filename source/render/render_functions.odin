@@ -143,7 +143,7 @@ init :: proc ()
 
     {
         // create quad entity
-        entity := game.Entity{0, 0}
+        entity := game.create_entity()
         append(&game.entities, entity)
         if values, exists := &game.components[entity]; !exists {
             game.components[entity] = make_dynamic_array([dynamic]game.Component)
