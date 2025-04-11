@@ -12,6 +12,7 @@ import "core:path/filepath"
 import "core:strings"
 import "core:log"
 import "../app"
+import "../game"
 import "meshes"
 import "textures"
 
@@ -46,6 +47,25 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
+    renderer = Renderer_State{
+        pipeline = nil,
+        sampler = nil,
+
+        vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+            usage = { sdl.GPUBufferUsageFlag.VERTEX },
+            size = 32_000 * size_of(meshes.Vertex_Data),
+        }),
+        vertex_buffer_position = 0,
+        
+        index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+            usage = { sdl.GPUBufferUsageFlag.INDEX },
+            size =  32_000 * 2,
+        }),
+        index_buffer_position = 0,
+
+        draw_calls = make([dynamic]Draw_Call_Data, 0, 32),
+    }
+
     {
         path := app.path_to_abs("/data/default_shader.spv.vert", context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
@@ -59,8 +79,8 @@ init :: proc ()
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
     }
 
-    vertex_transfer_buffer_position: int = 0
-    texture_transfer_buffer_position: int = 0
+    vertex_transfer_buffer_position: u32 = 0
+    texture_transfer_buffer_position: u32 = 0
 
     default_texture = textures.create_default_texture(gpu)
     schedule_upload_to_gpu_texture(
@@ -82,7 +102,7 @@ init :: proc ()
     texture, texture_surface, file_found := textures.load_texture_file(gpu, app.path_to_abs("/data/texture-00.png", context.temp_allocator))
     if file_found
     {
-        texture_size := int(texture_surface.pitch * texture_surface.h)
+        texture_size := u32(texture_surface.pitch * texture_surface.h)
         schedule_upload_to_gpu_texture_rawptr(
             source = texture_surface.pixels,
             pixels_per_row = u32(texture_surface.w),
@@ -102,49 +122,49 @@ init :: proc ()
     }
     default_texture = texture
 
-    vertex_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
-        usage = { sdl.GPUBufferUsageFlag.VERTEX },
-        size =  meshes.default_quad_vertices_num_bytes,
-    })
     schedule_upload_to_gpu_buffer(
         source = &meshes.default_quad_vertices,
         gpu_buffer_region = &sdl.GPUBufferRegion{
-            buffer = vertex_buffer_gpu,
+            buffer = renderer.vertex_buffer,
             offset = 0,
             size = meshes.default_quad_vertices_num_bytes,
         },
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
-
-    index_buffer_gpu = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
-        usage = { sdl.GPUBufferUsageFlag.INDEX },
-        size =  meshes.default_quad_indices_num_bytes,
-    })
     schedule_upload_to_gpu_buffer(
         source = &meshes.default_quad_indices,
         gpu_buffer_region = &sdl.GPUBufferRegion{
-            buffer = index_buffer_gpu,
+            buffer = renderer.index_buffer,
             offset = 0,
             size = meshes.default_quad_indices_num_bytes,
         },
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
 
-    quad_transform: matrix[4,4]f32 = {
-        9, 0, 0, 0,
-        0, 9, 0, 0,
-        0, 0, 9, -10,
-        0, 0, 0, 1,
+    {
+        // create quad entity
+        entity := game.Entity{0, 0}
+        append(&game.entities, entity)
+        if values, exists := &game.components[entity]; !exists {
+            game.components[entity] = make_dynamic_array([dynamic]game.Component)
+            values = &game.components[entity]
+        }
+        append(&game.components[entity], game.Transform_Component{
+            value = matrix[4,4]f32{
+                9, 0, 0, 0,
+                0, 9, 0, 0,
+                0, 0, 9, -10,
+                0, 0, 0, 1,
+            }
+        })
+        append(&game.components[entity], game.Mesh_Component{
+            index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
+            index_buffer_offset = 0,
+            vertex_buffer_offset = 0,
+            vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
+        })
     }
-    append(&draw_calls, Draw_Call_Data{
-        model_matrix = quad_transform,
-        index_buffer = index_buffer_gpu,
-        index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
-        index_buffer_offset = 0,
-        vertex_buffer = vertex_buffer_gpu,
-        vertex_buffer_offset = 0,
-        vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
-    })
+    
 
     vertex_transfer_buffer_size := u32(vertex_transfer_buffer_position)
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
@@ -155,7 +175,7 @@ init :: proc ()
         transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, vertex_transfer_buffer, false)
         for item in gpu_mesh_buffer_transfer_queue
         {
-            mem.copy(transfer_map[item.transfer_buffer_offset:], item.source, item.size)
+            mem.copy(transfer_map[item.transfer_buffer_offset:], item.source, int(item.size))
             fmt.printf("MESH mem.copy( transfer_map[{}:], source: %p, size: %d )\n", item.transfer_buffer_offset, item.source, item.size)
         }
 
@@ -179,7 +199,7 @@ init :: proc ()
         transfer_map := transmute([^]u8) sdl.MapGPUTransferBuffer(gpu, texture_transfer_buffer, false)
         for item in gpu_texture_buffer_transfer_queue
         {
-            mem.copy(transfer_map[item.transfer_buffer_offset:], item.source, item.size)
+            mem.copy(transfer_map[item.transfer_buffer_offset:], item.source, int(item.size))
             fmt.printf("TEXTURE mem.copy( transfer_map[{}:], source: %p, size: %d )\n", item.transfer_buffer_offset, item.source, item.size)
         }
         sdl.UnmapGPUTransferBuffer(gpu, texture_transfer_buffer)
@@ -236,9 +256,9 @@ init :: proc ()
     clear_dynamic_array(&gpu_mesh_buffer_transfer_queue)
     clear_dynamic_array(&gpu_texture_buffer_transfer_queue)
 
-    sampler = sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
+    renderer.sampler = sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
 
-    pipeline = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
+    renderer.pipeline = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = default_shader_vert,
         fragment_shader = default_shader_frag,
         primitive_type = .TRIANGLELIST,
@@ -278,10 +298,47 @@ tick :: proc ()
 {
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
-    
-    if len(draw_calls)!=0
+
+    // rebuild list of draw calls
+    clear(&renderer.draw_calls)
     {
-        draw_calls[0].model_matrix *= linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * 0.23, linalg.Vector3f32{0,1,0})
+        transform: game.Transform_Component
+        mesh: game.Mesh_Component
+        for entity in game.entities {
+            transform_found, mesh_found: u8
+            if components, exist := game.components[entity]; exist {
+                for comp in components {
+                    if tc, is := comp.(game.Transform_Component); is {
+                        transform = tc
+                        transform_found = 1
+                    }
+                    else if mc, is := comp.(game.Mesh_Component); is {
+                        mesh = mc
+                        mesh_found = 1
+                    }
+                    if mesh_found==1 && transform_found==1 do break;
+                }
+            }
+            if mesh_found==1 && transform_found==1 {
+                append(&renderer.draw_calls, Draw_Call_Data{
+                    model_matrix = transform.value,
+                    index_buffer_element_size = mesh.index_buffer_element_size,
+                    index_buffer_offset = mesh.index_buffer_offset,
+                    vertex_buffer_offset = mesh.vertex_buffer_offset,
+                    vertex_buffer_num_indices = mesh.vertex_buffer_num_indices,
+                })
+            }
+        }
+    }
+    
+    if components, has_components := &game.components[{0,0}]; has_components {
+        for i := 0 ; i<len(components) ; i+=1 {
+            comp := components[i]
+            if transform, is := comp.(game.Transform_Component); is {
+                transform.value *= linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * 0.23, linalg.Vector3f32{0,1,0})
+                components[i] = transform
+            }
+        }
     }
 
     cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
@@ -300,12 +357,12 @@ tick :: proc ()
 
         render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
         {
-            sdl.BindGPUGraphicsPipeline(render_pass, pipeline)
+            sdl.BindGPUGraphicsPipeline(render_pass, renderer.pipeline)
 
-            for draw in draw_calls
+            for draw in renderer.draw_calls
             {
-                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = draw.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
-                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = draw.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_element_size)
+                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = renderer.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
+                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = renderer.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_element_size)
 
                 ubo := Uniform_Buffer_Object{
                     mvp = proj_matrix * draw.model_matrix,
@@ -317,7 +374,7 @@ tick :: proc ()
 
                 sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
                         texture = default_texture,
-                        sampler = sampler,
+                        sampler = renderer.sampler,
                     },
                     1
                 )
@@ -349,11 +406,11 @@ load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderSta
     })
 }
 
-schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, transfer_buffer_position: ^int)
+schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, transfer_buffer_position: ^u32)
 {
     dat := UploadToGPUBuffer_Queue_Data{
         transfer_buffer_offset = transfer_buffer_position^,
-        size = app.num_bytes_of(source),
+        size = app.num_bytes_of_u32(source),
         source = raw_data(source^),
         gpu_buffer_region = gpu_buffer_region,
     }
@@ -361,11 +418,11 @@ schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GP
     transfer_buffer_position^ += dat.size
     log.debugf("[schedule_upload_to_gpu_buffer()] scheduled: {}", dat)
 }
-schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^int)
+schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^u32)
 {
     dat := UploadToGPUTexture_Queue_Data{
         transfer_buffer_offset = transfer_buffer_position^,
-        size = app.num_bytes_of(source),
+        size = app.num_bytes_of_u32(source),
         source = raw_data(source^),
         pixels_per_row = pixels_per_row,
         rows_per_layer = rows_per_layer,
@@ -375,7 +432,7 @@ schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows
     transfer_buffer_position^ += dat.size
     log.debugf("[schedule_upload_to_gpu_texture()] scheduled: {}", dat)
 }
-schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: int, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^int)
+schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: u32, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^u32)
 {
     dat := UploadToGPUTexture_Queue_Data{
         transfer_buffer_offset = transfer_buffer_position^,
