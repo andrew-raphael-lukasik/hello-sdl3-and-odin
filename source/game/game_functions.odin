@@ -15,7 +15,35 @@ close :: proc ()
 
 tick :: proc ()
 {
-    
+    rotate: Rotation_Component
+    rotate_index := -1
+    transform: Transform_Component
+    transform_index := -1
+    for entity in entities {
+        if comps, exist := components[entity]; exist {
+            comp_index := 0
+            for comp in comps {
+                if tc, is := comp.(Transform_Component); is {
+                    transform = tc
+                    transform_index = comp_index
+                    continue
+                }
+                else if rc, is := comp.(Rotation_Component); is {
+                    rotate = rc
+                    rotate_index = comp_index
+                    continue
+                }
+            }
+            if rotate_index!=-1 && transform_index!=-1 {
+                comps[transform_index] = Transform_Component{
+                    value = transform.value * linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * rotate.speed, rotate.axis)
+                }
+                rotate_index = -1
+                transform_index = -1
+            }
+            comp_index += 1
+        }
+    }
 }
 
 

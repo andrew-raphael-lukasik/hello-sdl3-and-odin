@@ -157,6 +157,10 @@ init :: proc ()
             vertex_buffer_offset = 0,
             vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
         },
+        game.Rotation_Component{
+            speed = 0.23,
+            axis = {0,1,0},
+        },
     )
 
     vertex_transfer_buffer_size := u32(vertex_transfer_buffer_position)
@@ -324,16 +328,6 @@ tick :: proc ()
         }
     }
     
-    if components, has_components := &game.components[{0,1}]; has_components {
-        for i := 0 ; i<len(components) ; i+=1 {
-            comp := components[i]
-            if transform, is := comp.(game.Transform_Component); is {
-                transform.value *= linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * 0.23, linalg.Vector3f32{0,1,0})
-                components[i] = transform
-            }
-        }
-    }
-
     cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
     swapchain_tex : ^sdl.GPUTexture
     ok := sdl.WaitAndAcquireGPUSwapchainTexture(cmd_buf , window , &swapchain_tex , nil , nil)
