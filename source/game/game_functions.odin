@@ -26,7 +26,7 @@ create_entity :: proc () -> Entity
         version = 1,
     }
     entities_index += 1
-    append(&entities, entity)
+    entities[entity] = 1
     return entity
 }
 
@@ -44,11 +44,18 @@ create_entity_and_components :: proc ( args: ..Component) -> Entity
 
 destroy_entity :: proc (entity: Entity) -> bool
 {
-    for i:=0 ; i<len(entities) ; i+=1 {
-        if entities[i]==entity {
-            unordered_remove(&entities, i)
-            return true
+    if exists_entity(entity) {
+        entities[entity] = 0
+        if components[entity]!=nil{
+            delete_dynamic_array(components[entity])
+            components[entity] = nil
         }
+        return true
     }
     return false
+}
+
+exists_entity :: proc (entity: Entity) -> bool
+{
+    return entities[entity]==1
 }
