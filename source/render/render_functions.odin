@@ -352,7 +352,7 @@ tick :: proc ()
                 sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = renderer.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_element_size)
 
                 ubo := Uniform_Buffer_Object{
-                    mvp = proj_matrix * draw.model_matrix,
+                    mvp = proj_matrix * view_matrix * draw.model_matrix,
                     model = draw.model_matrix,
                     view = view_matrix,
                     proj = proj_matrix,
