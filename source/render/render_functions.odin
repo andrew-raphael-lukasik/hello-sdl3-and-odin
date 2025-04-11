@@ -141,30 +141,23 @@ init :: proc ()
         transfer_buffer_position = &vertex_transfer_buffer_position,
     )
 
-    {
-        // create quad entity
-        entity := game.create_entity()
-        append(&game.entities, entity)
-        if values, exists := &game.components[entity]; !exists {
-            game.components[entity] = make_dynamic_array([dynamic]game.Component)
-            values = &game.components[entity]
-        }
-        append(&game.components[entity], game.Transform_Component{
+    // create quad entity
+    game.create_entity_and_components(
+        game.Transform_Component{
             value = matrix[4,4]f32{
                 9, 0, 0, 0,
                 0, 9, 0, 0,
                 0, 0, 9, -10,
                 0, 0, 0, 1,
             }
-        })
-        append(&game.components[entity], game.Mesh_Component{
+        },
+        game.Mesh_Component{
             index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
             index_buffer_offset = 0,
             vertex_buffer_offset = 0,
             vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
-        })
-    }
-    
+        },
+    )
 
     vertex_transfer_buffer_size := u32(vertex_transfer_buffer_position)
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
@@ -331,7 +324,7 @@ tick :: proc ()
         }
     }
     
-    if components, has_components := &game.components[{0,0}]; has_components {
+    if components, has_components := &game.components[{0,1}]; has_components {
         for i := 0 ; i<len(components) ; i+=1 {
             comp := components[i]
             if transform, is := comp.(game.Transform_Component); is {
