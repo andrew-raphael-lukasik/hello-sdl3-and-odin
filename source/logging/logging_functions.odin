@@ -142,7 +142,7 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
             ex_codename = "ILLEGAL_INSTRUCTION"
             
             // This is immediate program termination or a system crash potentially
-            // TODO: Make file logger write it's remaning messages to a log file now
+            // TODO: Make file logger write it's remaining messages to a log file now
             // TODO: Print state of registers, etc
             
             message := fmt.aprintf("Illegal CPU instruction exception occurred. The program will be terminated.")
