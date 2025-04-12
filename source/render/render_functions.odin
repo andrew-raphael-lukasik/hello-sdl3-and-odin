@@ -63,6 +63,9 @@ init :: proc ()
         }),
         index_buffer_offset = 0,
 
+        vertex_transfer_buffer_offset = 0,
+        texture_transfer_buffer_offset = 0,
+
         draw_calls = make([dynamic]Draw_Call_Data, 0, 32),
     }
 
@@ -79,9 +82,6 @@ init :: proc ()
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
     }
 
-    vertex_transfer_buffer_position: u32 = 0
-    texture_transfer_buffer_position: u32 = 0
-
     default_texture = textures.create_default_texture(gpu)
     schedule_upload_to_gpu_texture(
         source = &textures.default_texture_pixels,
@@ -95,8 +95,7 @@ init :: proc ()
             w = 4,
             h = 4,
             d = 1,
-        },
-        transfer_buffer_position = &texture_transfer_buffer_position,
+        }
     )
     
     texture, texture_surface, file_found := textures.load_texture_file(gpu, app.path_to_abs("/data/texture-00.png", context.temp_allocator))
@@ -116,8 +115,7 @@ init :: proc ()
                 w = u32(texture_surface.w),
                 h = u32(texture_surface.h),
                 d = 1,
-            },
-            transfer_buffer_position = &texture_transfer_buffer_position,
+            }
         )
     }
     default_texture = texture
@@ -128,8 +126,7 @@ init :: proc ()
             buffer = renderer.vertex_buffer,
             offset = renderer.vertex_buffer_offset,
             size = meshes.default_quad_vertices_num_bytes,
-        },
-        transfer_buffer_position = &vertex_transfer_buffer_position,
+        }
     )
     renderer.vertex_buffer_offset += meshes.default_quad_vertices_num_bytes
 
@@ -139,8 +136,7 @@ init :: proc ()
             buffer = renderer.index_buffer,
             offset = renderer.index_buffer_offset,
             size = meshes.default_quad_indices_num_bytes,
-        },
-        transfer_buffer_position = &vertex_transfer_buffer_position,
+        }
     )
     renderer.index_buffer_offset += meshes.default_quad_indices_num_bytes
 
@@ -166,7 +162,7 @@ init :: proc ()
         },
     )
 
-    vertex_transfer_buffer_size := u32(vertex_transfer_buffer_position)
+    vertex_transfer_buffer_size := renderer.vertex_transfer_buffer_offset
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
         size = vertex_transfer_buffer_size,
@@ -190,7 +186,7 @@ init :: proc ()
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer)
     }
 
-    texture_transfer_buffer_size := u32(texture_transfer_buffer_position)
+    texture_transfer_buffer_size := renderer.texture_transfer_buffer_offset
     texture_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
         size = texture_transfer_buffer_size,
@@ -269,8 +265,8 @@ init :: proc ()
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            num_vertex_attributes = u32(len(meshes.default_quad_vert_attrs)),
             vertex_attributes = raw_data(meshes.vertex_data_attrs),
+            num_vertex_attributes = u32(len(meshes.vertex_data_attrs)),
         },
         target_info = {
             num_color_targets = 1,
@@ -409,22 +405,32 @@ load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderSta
     })
 }
 
-schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion, transfer_buffer_position: ^u32)
+schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion)
 {
+    assert(source!=nil)
+    assert(gpu_buffer_region!=nil)
+    assert(gpu_buffer_region.buffer!=nil)
+
     dat := UploadToGPUBuffer_Queue_Data{
-        transfer_buffer_offset = transfer_buffer_position^,
+        transfer_buffer_offset = renderer.vertex_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
         source = raw_data(source^),
         gpu_buffer_region = gpu_buffer_region,
     }
     append(&gpu_mesh_buffer_transfer_queue, dat)
-    transfer_buffer_position^ += dat.size
+    renderer.vertex_transfer_buffer_offset += dat.size
+
     log.debugf("[schedule_upload_to_gpu_buffer()] scheduled: {}", dat)
 }
-schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^u32)
+schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
 {
+    assert(source!=nil)
+    assert(gpu_texture_region!=nil)
+    assert(pixels_per_row!=0)
+    assert(rows_per_layer!=0)
+
     dat := UploadToGPUTexture_Queue_Data{
-        transfer_buffer_offset = transfer_buffer_position^,
+        transfer_buffer_offset = renderer.texture_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
         source = raw_data(source^),
         pixels_per_row = pixels_per_row,
@@ -432,13 +438,19 @@ schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows
         gpu_texture_region = gpu_texture_region,
     }
     append(&gpu_texture_buffer_transfer_queue, dat)
-    transfer_buffer_position^ += dat.size
+    renderer.texture_transfer_buffer_offset += dat.size
+
     log.debugf("[schedule_upload_to_gpu_texture()] scheduled: {}", dat)
 }
-schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: u32, gpu_texture_region: ^sdl.GPUTextureRegion, transfer_buffer_position: ^u32)
+schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
 {
+    assert(source!=nil)
+    assert(gpu_texture_region!=nil)
+    assert(pixels_per_row!=0)
+    assert(rows_per_layer!=0)
+
     dat := UploadToGPUTexture_Queue_Data{
-        transfer_buffer_offset = transfer_buffer_position^,
+        transfer_buffer_offset = renderer.texture_transfer_buffer_offset,
         size = size,
         source = source,
         pixels_per_row = pixels_per_row,
@@ -446,6 +458,6 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
         gpu_texture_region = gpu_texture_region,
     }
     append(&gpu_texture_buffer_transfer_queue, dat)
-    transfer_buffer_position^ += dat.size
+    renderer.texture_transfer_buffer_offset += dat.size
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
 }
