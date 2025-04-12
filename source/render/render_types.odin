@@ -20,6 +20,9 @@ Renderer_State :: struct
     index_buffer: ^sdl.GPUBuffer,
     index_buffer_offset: u32,
 
+    vertex_transfer_buffer_offset: u32,
+    texture_transfer_buffer_offset: u32,
+
     draw_calls: [dynamic]Draw_Call_Data,
 }
 
