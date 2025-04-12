@@ -1,9 +1,12 @@
 package logging
 import "base:runtime"
 import "core:encoding/ansi"
+import "core:log"
 
 
 logging_context : runtime.Context
+file_logger: log.Logger
+console_logger: log.Logger
 default_assertion_failure_proc: runtime.Assertion_Failure_Proc
 
 STATUS_WAIT_0 :: 0x00000000

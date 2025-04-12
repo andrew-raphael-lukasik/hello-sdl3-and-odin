@@ -29,7 +29,8 @@ init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
     default_assertion_failure_proc = logging_context.assertion_failure_proc
     logging_context.assertion_failure_proc = on_assertion_failure
 
-    logging_context.logger = log.create_console_logger(lowest)
+    console_logger = log.create_console_logger(lowest)
+    logging_context.logger = console_logger
     {
         dir_current := os.get_current_directory(logging_context.temp_allocator)
         path := filepath.join([]string{dir_current, "log.txt"}, logging_context.temp_allocator)
@@ -37,12 +38,13 @@ init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
         if err==nil
         {
             log.debugf("Log file path: {}", path)
-            file_logger := log.create_file_logger(log_file_handle, lowest)
-            multi_logger := log.create_multi_logger(logging_context.logger, file_logger)
-            logging_context.logger = multi_logger
+            file_logger = log.create_file_logger(log_file_handle, lowest)
+            logging_context.logger = log.create_multi_logger(console_logger, file_logger)
         }
         else do log.errorf("'{}' error while creating log file at path: {}", err, path)
     }
+
+    context = logging_context
     log.debugf("Application started")
     
     handler_ptr := AddVectoredExceptionHandler(1, cast(rawptr) vectored_exception_handler)
@@ -88,8 +90,12 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
             
             // NOTE: handling both DBG_PRINTEXCEPTION_C and DBG_PRINTEXCEPTION_WIDE_C leads to duplicated VSCode->Terminal's log messages so I choose one and disable the other here
             
-            // message := cast(cstring) ex.ExceptionRecord.ExceptionInformation[1]
-            // fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            // info := cast(cstring) ex.ExceptionRecord.ExceptionInformation[1]
+            // info = strings.trim_right(info, "\n")
+            // file_message := fmt.aprintf("[DEBUG] --- [%04d-%02d-%02d %02d:%02d:%02d] %s", date.year, date.month, date.day, h, m, s, info)
+            // print_to_file(file_message)
+            // console_message := fmt.aprintf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, info)
+            // print_to_console(console_message)
 
             return EXCEPTION_CONTINUE_SEARCH
         }
@@ -104,8 +110,12 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
             utf8_str := win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, nil, 0, nil, nil)
             buf := make([]byte, utf8_str, context.temp_allocator)
             win.WideCharToMultiByte(win.CP_UTF8, 0, wstr_ptr, -1, &buf[0], utf8_str, nil, nil)
-            message := string(buf[:utf8_str-1])
-            fmt.printf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, message)
+            info := string(buf[:utf8_str-1])
+            info = strings.trim_right(info, "\n")
+            file_message := fmt.aprintf("[DEBUG] --- [%04d-%02d-%02d %02d:%02d:%02d] %s", date.year, date.month, date.day, h, m, s, info)
+            print_to_file(file_message)
+            console_message := fmt.aprintf("{}[DEBUG]{} --- [%04d-%02d-%02d %02d:%02d:%02d] %s", ANSI_GREY, ANSI_RESET, date.year, date.month, date.day, h, m, s, info)
+            print_to_console(console_message)
             
             return EXCEPTION_CONTINUE_SEARCH
         }
@@ -135,7 +145,9 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
             // TODO: Make file logger write it's remaning messages to a log file now
             // TODO: Print state of registers, etc
             
-            fmt.printf("Illegal CPU instruction exception occurred. The program will be terminated.")
+            message := fmt.aprintf("Illegal CPU instruction exception occurred. The program will be terminated.")
+            print_to_file(message)
+            print_to_console(message)
             win.ExitProcess(1)
             // return EXCEPTION_CONTINUE_SEARCH
         }
@@ -181,8 +193,12 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
     module_name := get_module_name()
     exception_code := ex_rec.ExceptionCode
     access_address := ex_rec.ExceptionInformation[1]
-    fmt.printfln("{}[EXCEPTION]{} --- [%04d-%02d-%02d %02d:%02d:%02d] Exception thrown at {} in %s: %x: {}{}{} location {}", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, exception_address, module_name, exception_code, ANSI_BOLD, ex_codename, ANSI_RESET, access_address)
     
+    file_message := fmt.aprintf("[EXCEPTION] --- [%04d-%02d-%02d %02d:%02d:%02d] Exception thrown at {} in %s: %x: {} location {}", date.year, date.month, date.day, h, m, s, exception_address, module_name, exception_code, ex_codename, access_address)
+    print_to_file(file_message)
+    console_message := fmt.aprintf("{}[EXCEPTION]{} --- [%04d-%02d-%02d %02d:%02d:%02d] {}Exception thrown at {} in %s: %x: {}{} location {}{}", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, ANSI_MAGENTA, exception_address, module_name, exception_code, ANSI_BOLD, ex_codename, access_address, ANSI_RESET)
+    print_to_console(console_message)
+
     EXCEPTION_CONTINUE_EXECUTION :: -1// continues program execution
     EXCEPTION_CONTINUE_SEARCH :: 0// breaks program execution
     return EXCEPTION_CONTINUE_SEARCH
@@ -211,4 +227,14 @@ get_module_name :: proc() -> string
         }
     }
     return "<unknown>"
+}
+
+print_to_file :: proc (message: string)
+{
+    file_logger.procedure(file_logger.data, log.Level.Info, message, {})
+}
+
+print_to_console :: proc (message: string)
+{
+    console_logger.procedure(console_logger.data, log.Level.Info, message, {})
 }
