@@ -269,8 +269,8 @@ init :: proc ()
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            vertex_attributes = raw_data(meshes.default_quad_vert_attrs),
             num_vertex_attributes = u32(len(meshes.default_quad_vert_attrs)),
+            vertex_attributes = raw_data(meshes.vertex_data_attrs),
         },
         target_info = {
             num_color_targets = 1,
