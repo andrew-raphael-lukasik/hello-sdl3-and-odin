@@ -30,14 +30,14 @@ init :: proc ()
 
     if !sdl.Init({.VIDEO})
     {
-        fmt.eprintln(sdl.GetError())
+        log.fatal(sdl.GetError())
         return
     }
 
     window = sdl.CreateWindow("Hello SDL3 and Odin", window_size.x, window_size.y, {})
     if window==nil
     {
-        fmt.eprintln(sdl.GetError())
+        log.fatal(sdl.GetError())
         return
     }
 
