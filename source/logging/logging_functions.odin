@@ -207,7 +207,14 @@ vectored_exception_handler :: proc "stdcall" (ex: ^win.EXCEPTION_POINTERS) -> wi
 // readme: https://pkg.odin-lang.org/core/debug/trace/
 on_assertion_failure :: proc(prefix, message: string, loc := #caller_location) -> !
 {
-    log.errorf("{}[ASSERT]{} Assertion '{}' failed, loc: {}", ANSI_MAGENTA, ANSI_RESET, message, loc)
+    t := time.now()
+    h, m, s := time.clock_from_time(t)
+    date, _ := time.time_to_datetime(t)
+    file_message := fmt.aprintf("[ASSERT]  --- [%04d-%02d-%02d %02d:%02d:%02d] Assertion '{}' failed, loc: {}", date.year, date.month, date.day, h, m, s, message, loc)
+    print_to_file(file_message)
+    console_message := fmt.aprintf("{}[ASSERT]{}  --- [%04d-%02d-%02d %02d:%02d:%02d] {}Assertion '{}' failed, loc: {}{}", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, ANSI_MAGENTA, message, loc, ANSI_RESET)
+    print_to_console(console_message)
+
     default_assertion_failure_proc(prefix, message,loc)// default assertion proc
     // win.ExitProcess(1)// closes the app
     // runtime.trap()// end
