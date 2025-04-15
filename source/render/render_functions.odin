@@ -22,7 +22,7 @@ init :: proc ()
 {
     when ODIN_DEBUG
     {
-        sdl.SetLogPriorities(.INFO)
+        sdl.SetLogPriorities(.VERBOSE)
     }
     else
     {
