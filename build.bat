@@ -18,11 +18,9 @@ if %errorlevel% neq 0 exit /b 1
 copy "%~dp0assets\default_cube.gltf" %build_path%\data\
 copy "%~dp0assets\texture-00.png" %build_path%\data\
 
-odin build ./source/ -debug
-if %errorlevel% neq 0 exit /b 1
 md %build_path%\bin 2> nul
-move source.exe %build_path%\bin\%project_name%.exe
-move source.pdb %build_path%\bin\%project_name%.pdb
+odin build ./source/ -debug -out:%build_path%\bin\%project_name%.exe
+if %errorlevel% neq 0 exit /b 1
 copy %~dp0source\render\redistributable_bin\SDL3.dll %build_path%\bin\
 copy %~dp0source\render\redistributable_bin\SDL3_image.dll %build_path%\bin\
 copy %~dp0source\steam\steamworks\redistributable_bin\win64\steam_api64.dll %build_path%\bin\
