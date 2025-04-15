@@ -163,6 +163,20 @@ init :: proc ()
         },
     )
 
+    for mesh_component in load_meshes_from_file(app.path_to_abs("/data/default_cube.gltf", context.temp_allocator)) {
+        game.create_entity_and_components(
+            game.Transform_Component{
+                value = matrix[4,4]f32{
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, -10,
+                    0, 0, 0, 1,
+                }
+            },
+            mesh_component,
+        )
+    }
+
     vertex_transfer_buffer_size := renderer.vertex_transfer_buffer_offset
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
