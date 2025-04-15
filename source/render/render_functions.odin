@@ -15,6 +15,7 @@ import "../app"
 import "../game"
 import "meshes"
 import "textures"
+import "gltf2"
 
 
 init :: proc ()
@@ -460,4 +461,153 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
     append(&gpu_texture_buffer_transfer_queue, dat)
     renderer.texture_transfer_buffer_offset += dat.size
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
+}
+
+@(require_results)
+load_meshes_from_file :: proc(file_name: string, allocator := context.allocator) -> []game.Mesh_Component {    
+    mesh_data, error := gltf2.load_from_file(file_name)
+    switch err in error
+    {
+        case gltf2.JSON_Error: log.error("gltf2.JSON_Error")
+        case gltf2.GLTF_Error: log.error("gltf2.GLTF_Error")
+    }
+
+    defer gltf2.unload(mesh_data)
+
+    results := make([]game.Mesh_Component, len(mesh_data.meshes), allocator)
+    results_index := 0
+
+    for mesh in mesh_data.meshes
+    {
+        vertex_indices: [dynamic]u16
+        vertex_positions: [dynamic][3]f32
+        vertex_uvs: [dynamic][2]f32
+        vertex_colors: [dynamic][3]f32
+
+        for primitive in mesh.primitives
+        {
+            indices_accessor_index, primitive_indices_exists := primitive.indices.?
+            if !primitive_indices_exists
+            {
+                log.errorf("indices_accessor_index not present")
+                continue
+            }
+
+            indices_accessor := mesh_data.accessors[indices_accessor_index]
+            switch indices_accessor.component_type
+            {
+                case .Byte:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]byte)
+                    for val in buf do append(&vertex_indices, u16(val))
+                case .Unsigned_Byte:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u8)
+                    for val in buf do append(&vertex_indices, u16(val))
+                case .Short:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]i16)
+                    for val in buf do append(&vertex_indices, u16(val))
+                case .Unsigned_Short:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u16)
+                    for val in buf do append(&vertex_indices, u16(val))
+                case .Unsigned_Int:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u32)
+                    for val in buf do append(&vertex_indices, u16(val))
+                case .Float:
+                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]f32)
+                    for val in buf do append(&vertex_indices, u16(val))
+            }
+
+            for attribute_name, accessor_index in primitive.attributes
+            {
+                primitive_accessor := mesh_data.accessors[accessor_index]
+                switch attribute_name
+                {
+                    case "POSITION":
+                        #partial switch primitive_accessor.type
+                        {
+                            case .Vector3:
+                                buf := gltf2.buffer_slice(mesh_data, accessor_index).([][3]f32)
+                                for val in buf do append(&vertex_positions, val)
+                                case: log.errorf("{} case not implemented, according to specs https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html", primitive_accessor.type)
+                        }
+                    case "NORMAL":
+                        log.warnf("attribute {} {} not implemented", attribute_name, primitive_accessor.type)
+                    case "TANGENT":
+                        log.warnf("attribute {} {} not implemented", attribute_name, primitive_accessor.type)
+                    case "TEXCOORD_0":
+                        #partial switch primitive_accessor.type
+                        {
+                            case .Vector2:
+                                buf := gltf2.buffer_slice(mesh_data, accessor_index).([][2]f32)
+                                for val in buf do append(&vertex_uvs, val)
+                                case: log.errorf("{} case not implemented, according to specs https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html", primitive_accessor.type)
+                        }
+                    case "COLOR_0":
+                        #partial switch primitive_accessor.type
+                        {
+                            case .Vector3:
+                                buf := gltf2.buffer_slice(mesh_data, accessor_index).([][3]f32)
+                                for val in buf do append(&vertex_colors, val)
+                            case .Vector4:
+                                buf := gltf2.buffer_slice(mesh_data, accessor_index).([][4]f32)
+                                for val in buf do append(&vertex_colors, [3]f32{val.r, val.g, val.b})
+                            case: log.errorf("{} case not implemented, according to specs https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html", primitive_accessor.type)
+                        }
+                }
+            }
+        }
+
+        num_vertices := u32(len(vertex_positions))
+        vertex_data := make([]meshes.Vertex_Data, num_vertices)
+        for i:u32 = 0 ; i<u32(len(vertex_data)) ; i+=1 {
+            vertex_data[i] = meshes.Vertex_Data{
+                pos = {0, 0, 0},
+                uv =  {0, 0},
+                col = {1, 1, 1},
+            }
+        }
+        for i:u32 = 0 ; i<u32(len(vertex_positions)) ; i+=1 {
+            vertex_data[i].pos = vertex_positions[i]
+        }
+        for i:u32 = 0 ; i<u32(len(vertex_uvs)) ; i+=1 {
+            vertex_data[i].uv = vertex_uvs[i]
+        }
+        for i:u32 = 0 ; i<u32(len(vertex_colors)) ; i+=1 {
+            vertex_data[i].col = vertex_colors[i]
+        }
+        
+        mesh_vertex_buffer_offset := renderer.vertex_buffer_offset
+        schedule_upload_to_gpu_buffer(
+            source = &vertex_data,
+            gpu_buffer_region = &sdl.GPUBufferRegion{
+                buffer = renderer.vertex_buffer,
+                offset = renderer.vertex_buffer_offset,
+                size = app.num_bytes_of_u32(&vertex_data),
+            },
+        )
+        renderer.vertex_buffer_offset += app.num_bytes_of_u32(&vertex_data)
+
+        vertex_indices_slice := vertex_indices[:]
+        mesh_index_buffer_offset := renderer.index_buffer_offset
+        mesh_vertex_buffer_num_indices := u32(len(vertex_indices[:]))
+        schedule_upload_to_gpu_buffer(
+            source = &vertex_indices_slice,
+            gpu_buffer_region = &sdl.GPUBufferRegion{
+                buffer = renderer.index_buffer,
+                offset = mesh_index_buffer_offset,
+                size = app.num_bytes_of_u32(&vertex_indices_slice),
+            },
+        )
+        renderer.index_buffer_offset += app.num_bytes_of_u32(&vertex_indices_slice)
+        
+        results[results_index] = game.Mesh_Component{
+            index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
+            index_buffer_offset = mesh_index_buffer_offset,
+            vertex_buffer_offset = mesh_vertex_buffer_offset,
+            vertex_buffer_num_indices = mesh_vertex_buffer_num_indices,
+        }
+        results_index += 1
+    }
+
+    log.debugf("{} results: {}", results_index, results)
+    return results
 }
