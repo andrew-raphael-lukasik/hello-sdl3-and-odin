@@ -123,7 +123,7 @@ init :: proc ()
 
     schedule_upload_to_gpu_buffer(
         source = &meshes.default_quad_vertices,
-        gpu_buffer_region = &sdl.GPUBufferRegion{
+        gpu_buffer_region = sdl.GPUBufferRegion{
             buffer = renderer.vertex_buffer,
             offset = renderer.vertex_buffer_offset,
             size = meshes.default_quad_vertices_num_bytes,
@@ -133,7 +133,7 @@ init :: proc ()
 
     schedule_upload_to_gpu_buffer(
         source = &meshes.default_quad_indices,
-        gpu_buffer_region = &sdl.GPUBufferRegion{
+        gpu_buffer_region = sdl.GPUBufferRegion{
             buffer = renderer.index_buffer,
             offset = renderer.index_buffer_offset,
             size = meshes.default_quad_indices_num_bytes,
@@ -219,7 +219,7 @@ init :: proc ()
                         transfer_buffer = vertex_transfer_buffer,
                         offset = offset,
                     },
-                    item.gpu_buffer_region^,
+                    item.gpu_buffer_region,
                     false
                 )
                 offset += item.gpu_buffer_region.size
@@ -406,10 +406,9 @@ load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderSta
     })
 }
 
-schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: ^sdl.GPUBufferRegion)
+schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPUBufferRegion)
 {
     assert(source!=nil)
-    assert(gpu_buffer_region!=nil)
     assert(gpu_buffer_region.buffer!=nil)
 
     dat := UploadToGPUBuffer_Queue_Data{
@@ -578,7 +577,7 @@ load_meshes_from_file :: proc(file_name: string, allocator := context.allocator)
         mesh_vertex_buffer_offset := renderer.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = &vertex_data,
-            gpu_buffer_region = &sdl.GPUBufferRegion{
+            gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
                 offset = renderer.vertex_buffer_offset,
                 size = app.num_bytes_of_u32(&vertex_data),
@@ -591,7 +590,7 @@ load_meshes_from_file :: proc(file_name: string, allocator := context.allocator)
         mesh_vertex_buffer_num_indices := u32(len(vertex_indices[:]))
         schedule_upload_to_gpu_buffer(
             source = &vertex_indices_slice,
-            gpu_buffer_region = &sdl.GPUBufferRegion{
+            gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.index_buffer,
                 offset = mesh_index_buffer_offset,
                 size = app.num_bytes_of_u32(&vertex_indices_slice),

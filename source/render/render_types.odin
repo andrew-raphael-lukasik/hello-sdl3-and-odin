@@ -31,7 +31,7 @@ UploadToGPUBuffer_Queue_Data :: struct
     transfer_buffer_offset: u32,
     size: u32,
     source: rawptr,
-    gpu_buffer_region: ^sdl.GPUBufferRegion,
+    gpu_buffer_region: sdl.GPUBufferRegion,
 }
 UploadToGPUTexture_Queue_Data :: struct
 {
