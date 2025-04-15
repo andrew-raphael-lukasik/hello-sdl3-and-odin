@@ -22,7 +22,7 @@ foreign kernel32
 }
 
 
-init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
+init :: proc(lowest: log.Level = log.Level.Debug, log_file_name: string = "log.txt") -> runtime.Context
 {
     logging_context = context
     
@@ -33,7 +33,7 @@ init :: proc(lowest: log.Level = log.Level.Debug) -> runtime.Context
     logging_context.logger = console_logger
     {
         dir_current := os.get_current_directory(logging_context.temp_allocator)
-        path := filepath.join([]string{dir_current, "log.txt"}, logging_context.temp_allocator)
+        path := filepath.join([]string{dir_current, log_file_name}, logging_context.temp_allocator)
         log_file_handle, err := os.open(path, os.O_CREATE | os.O_TRUNC | os.O_WRONLY)
         if err==nil
         {
