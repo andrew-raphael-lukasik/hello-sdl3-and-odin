@@ -215,7 +215,7 @@ on_assertion_failure :: proc(prefix, message: string, loc := #caller_location) -
     console_message := fmt.aprintf("{}[ASSERT]{}  --- [%04d-%02d-%02d %02d:%02d:%02d] {}Assertion '{}' failed, loc: {}{}", ANSI_MAGENTA, ANSI_RESET, date.year, date.month, date.day, h, m, s, ANSI_MAGENTA, message, loc, ANSI_RESET)
     print_to_console(console_message)
 
-    default_assertion_failure_proc(prefix, message,loc)// default assertion proc
+    default_assertion_failure_proc(prefix, message, loc)// default assertion proc
     // win.ExitProcess(1)// closes the app
     // runtime.trap()// end
 }
