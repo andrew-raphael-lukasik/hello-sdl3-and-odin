@@ -22,6 +22,7 @@ foreign kernel32
 }
 
 
+@(require_results)
 init :: proc(lowest: log.Level = log.Level.Debug, log_file_name: string = "log.txt") -> runtime.Context
 {
     logging_context = context
