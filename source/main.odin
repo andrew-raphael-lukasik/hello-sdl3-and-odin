@@ -11,7 +11,7 @@ main :: proc ()
 {
     when ODIN_DEBUG
     {
-        context = logging.init()
+        context = logging.init(log_file_name="program.log")
     }
 
     context = app.init()
