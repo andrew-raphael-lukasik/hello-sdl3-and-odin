@@ -2,6 +2,10 @@ set project_name=hello-sdl3
 set build_name=win64-debug
 set build_path=%~dp0build\%build_name%
 
+odin build ./source/build_utilities
+if %errorlevel% neq 0 exit /b 1
+build_utilities.exe
+
 @REM TODO: at some point figure out a better way of preparing data files
 if exist "%build_path%" (
     echo Build directory exists, clearing it's content before build starts...
