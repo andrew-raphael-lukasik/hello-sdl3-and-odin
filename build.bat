@@ -15,10 +15,6 @@ if %errorlevel% neq 0 exit /b 1
 
 odin build ./source/ -debug -out:%build_path%\bin\%project_name%.exe
 if %errorlevel% neq 0 exit /b 1
-copy %~dp0source\render\redistributable_bin\SDL3.dll %build_path%\bin\
-copy %~dp0source\render\redistributable_bin\SDL3_image.dll %build_path%\bin\
-copy %~dp0source\steam\steamworks\redistributable_bin\win64\steam_api64.dll %build_path%\bin\
-copy %~dp0source\steam\steam_appid.txt %build_path%\bin\
 
 if "%~1" == "run" (
     cd build
