@@ -18,9 +18,15 @@ paths_to_create := []string{
     "build/win64-debug/bin",
     "build/win64-debug/data"
 }
-file_types_to_copy := []string{
+data_file_types_to_copy := []string{
     ".gltf",
     ".png"
+}
+bin_files_to_copy := []string{
+    "source/render/redistributable_bin/SDL3.dll",
+    "source/render/redistributable_bin/SDL3_image.dll",
+    "source/steam/steamworks/redistributable_bin/win64/steam_api64.dll",
+    "source/steam/steam_appid.txt",
 }
 
 main :: proc ()
@@ -43,13 +49,16 @@ main :: proc ()
 
     for element in get_dir_content("assets", context.temp_allocator) {
         if !element.is_dir {
-            for ext in file_types_to_copy {
+            for ext in data_file_types_to_copy {
                 if strings.ends_with(element.name, ext) {
-                    log.debugf("matching file found: %s", element.name)
                     copy_file(element.fullpath, filepath.join([]string{paths_to_create[1], element.name}, context.temp_allocator))
                 }
             }
         }
+    }
+
+    for path in bin_files_to_copy {
+        copy_file(path, filepath.join([]string{paths_to_create[0], filepath.base(path)}, context.temp_allocator))
     }
 
     logging.close()
