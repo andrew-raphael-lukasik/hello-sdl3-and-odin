@@ -11,12 +11,14 @@ import "../logging"
 import "../app"
 
 
+path_bin := "build/win64-debug/bin"
+path_data := "build/win64-debug/data"
 directories_to_delete := []string{
     "build"
 }
 paths_to_create := []string{
-    "build/win64-debug/bin",
-    "build/win64-debug/data"
+    path_bin,
+    path_data
 }
 data_file_types_to_copy := []string{
     ".gltf",
@@ -51,14 +53,14 @@ main :: proc ()
         if !element.is_dir {
             for ext in data_file_types_to_copy {
                 if strings.ends_with(element.name, ext) {
-                    copy_file(element.fullpath, filepath.join([]string{paths_to_create[1], element.name}, context.temp_allocator))
+                    copy_file(element.fullpath, filepath.join([]string{path_data, element.name}, context.temp_allocator))
                 }
             }
         }
     }
 
     for path in bin_files_to_copy {
-        copy_file(path, filepath.join([]string{paths_to_create[0], filepath.base(path)}, context.temp_allocator))
+        copy_file(path, filepath.join([]string{path_bin, filepath.base(path)}, context.temp_allocator))
     }
 
     logging.close()
