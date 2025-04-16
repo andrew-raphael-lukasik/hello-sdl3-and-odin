@@ -12,8 +12,6 @@ glslc ./shaders/default_shader.glsl.vert -o %build_path%/data/default_shader.spv
 if %errorlevel% neq 0 exit /b 1
 glslc ./shaders/default_shader.glsl.frag -o %build_path%/data/default_shader.spv.frag
 if %errorlevel% neq 0 exit /b 1
-copy "%~dp0assets\default_cube.gltf" %build_path%\data\
-copy "%~dp0assets\texture-00.png" %build_path%\data\
 
 odin build ./source/ -debug -out:%build_path%\bin\%project_name%.exe
 if %errorlevel% neq 0 exit /b 1
