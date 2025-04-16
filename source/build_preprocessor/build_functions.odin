@@ -11,61 +11,6 @@ import "../logging"
 import "../app"
 
 
-path_bin := "build/win64-debug/bin"
-path_data := "build/win64-debug/data"
-directories_to_delete := []string{
-    "build"
-}
-paths_to_create := []string{
-    path_bin,
-    path_data
-}
-data_file_types_to_copy := []string{
-    ".gltf",
-    ".png"
-}
-bin_files_to_copy := []string{
-    "source/render/redistributable_bin/SDL3.dll",
-    "source/render/redistributable_bin/SDL3_image.dll",
-    "source/steam/steamworks/redistributable_bin/win64/steam_api64.dll",
-    "source/steam/steam_appid.txt",
-}
-
-main :: proc ()
-{
-    context = logging.init(log_file_name="build_preprocessor.log")
-
-    for path in directories_to_delete {
-        if os.exists(path) {
-            log.debugf("\"%s\" dir exists, clearing it's content before build starts...", path)
-            if remove_dir_and_content(path) {
-                log.debugf("\"%s\" dir removed successfully", path)
-            }
-        }
-    }
-
-    for path in paths_to_create {
-        make_path(path)
-        log.debugf("\"%s\" path created successfully", path)
-    }
-
-    for element in get_dir_content("assets", context.temp_allocator) {
-        if !element.is_dir {
-            for ext in data_file_types_to_copy {
-                if strings.ends_with(element.name, ext) {
-                    copy_file(element.fullpath, filepath.join([]string{path_data, element.name}, context.temp_allocator))
-                }
-            }
-        }
-    }
-
-    for path in bin_files_to_copy {
-        copy_file(path, filepath.join([]string{path_bin, filepath.base(path)}, context.temp_allocator))
-    }
-
-    logging.close()
-}
-
 make_path :: proc (path: string)
 {
     dir: string
