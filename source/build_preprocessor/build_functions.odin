@@ -3,37 +3,52 @@ import "core:io"
 import "core:os"
 import "core:mem"
 import "core:log"
+import "core:fmt"
 import "core:path/filepath"
+import "core:strings"
 import "../render/glTF2"
 import "../logging"
 import "../app"
 
+directories_to_delete := []string{
+    "build"
+}
+paths_to_create := []string{
+    "build/win64-debug/bin",
+    "build/win64-debug/data"
+}
 
 main :: proc ()
 {
     context = logging.init(log_file_name="build_preprocessor.log")
 
-    // log.debug("Build directory exists, clearing it's content before build starts...")
-    if remove_dir_and_content("build") {
-        log.debug("build dir removed successfully")
-    }
-
-    if err := os.make_directory("build"); err!=nil {
-        log.errorf("os.make_directory(\"build\") thrown error {}", err)
-    } else {
-        if err := os.make_directory("build/win64-debug"); err!=nil {
-            log.errorf("os.make_directory(\"build/win64-debug\") thrown error {}", err)
-        } else {
-            if err := os.make_directory("build/win64-debug/bin"); err!=nil {
-                log.errorf("os.make_directory(\"build/win64-debug/bin\") thrown error {}", err)
-            }
-            if err := os.make_directory("build/win64-debug/data"); err!=nil {
-                log.errorf("os.make_directory(\"build/win64-debug/data\") thrown error {}", err)
+    for path in directories_to_delete {
+        if os.exists(path) {
+            log.debugf("\"%s\" dir exists, clearing it's content before build starts...", path)
+            if remove_dir_and_content(path) {
+                log.debugf("\"%s\" dir removed successfully", path)
             }
         }
     }
 
+    for path in paths_to_create {
+        make_path(path)
+        log.debugf("\"%s\" path created successfully", path)
+    }
+
     logging.close()
+}
+
+make_path :: proc (path: string)
+{
+    dir: string
+    for next in strings.split(path, "/", context.temp_allocator) {
+        dir = len(dir)!=0 ? strings.join([]string{dir, next}, "/", context.temp_allocator) : next
+        if err := os.make_directory(dir); err!=nil && err!=os.General_Error.Exist {
+            log.errorf("os.make_directory(\"%s\") thrown error {}", dir, err)
+            return
+        }
+    }
 }
 
 remove_dir_and_content :: proc(path: string) -> bool {
@@ -60,14 +75,14 @@ remove_dir_and_content :: proc(path: string) -> bool {
                 remove_dir_and_content(full_path)
             } else {
                 if err := os.remove(full_path); err!=nil {
-                    log.errorf("Error removing file: %s, %v", full_path, err)
+                    log.errorf("Error removing file: \"%s\", %v", full_path, err)
                 }
             }
         }
 
         os.close(dir_handle)
         if err := os.remove(path); err!=nil {
-            log.errorf("Error removing directory: %s, %v", path, err)
+            log.errorf("Error removing directory: \"%s\", %v", path, err)
         }
 
         return true
