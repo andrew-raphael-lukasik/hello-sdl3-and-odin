@@ -8,7 +8,7 @@ import "../../game"
 
 
 @(require_results)
-load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data, [][]byte, []sdl.GPUIndexElementSize) {
+load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data, [][]byte, []sdl.GPUIndexElementSize, []GLTF_Mesh_Object_Info) {
     mesh_data, error := gltf2.load_from_file(file_name)
     switch err in error
     {
@@ -124,5 +124,18 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         append(&index_size_data, index_size)
     }
 
-    return vertex_data[:], index_data[:], index_size_data[:]
+    mesh_objects := make_dynamic_array([dynamic]GLTF_Mesh_Object_Info)
+    for node in mesh_data.nodes {
+        if node_mesh, is_mesh := node.mesh.?; is_mesh {
+            obj := GLTF_Mesh_Object_Info{
+                mesh_index = node_mesh,
+                translation = node.translation,
+                scale = node.scale,
+                rotation = node.rotation,
+            }
+            append(&mesh_objects, obj)
+        }
+    }
+
+    return vertex_data[:], index_data[:], index_size_data[:], mesh_objects[:]
 }

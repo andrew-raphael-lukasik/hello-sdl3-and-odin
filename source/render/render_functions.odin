@@ -163,7 +163,25 @@ init :: proc ()
         },
     )
 
-    for mesh_component in create_mesh_components_from_file(app.path_to_abs("/data/default_cube.gltf")) {
+    mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/default_cube.gltf"))
+    for mesh_object in mesh_objects {
+        cx: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
+        cy: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
+        cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
+        ct: [3]f32 = mesh_object.translation + [3]f32{0, 0, -10}
+        game.create_entity_and_components(
+            game.Transform_Component{
+                value = matrix[4,4]f32{
+                    cx[0], cy[0], cz[0], ct[0],
+                    cx[1], cy[1], cz[1], ct[1],
+                    cx[2], cy[2], cz[2], ct[2],
+                    0, 0, 0, 1,
+                }
+            },
+            mesh_components[mesh_object.mesh_index],
+        )
+    }
+    for mesh_component in mesh_components {
         game.create_entity_and_components(
             game.Transform_Component{
                 value = matrix[4,4]f32{
@@ -483,9 +501,9 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
 }
 
-create_mesh_components_from_file :: proc(file_name: string, allocator := context.allocator) -> []game.Mesh_Component {
-    a, b, c := meshes.load_mesh_data_from_file(file_name, allocator)
-    return create_mesh_components(a, b, c, allocator)
+create_mesh_components_from_file :: proc(file_name: string, allocator := context.allocator) -> ([]game.Mesh_Component, []meshes.GLTF_Mesh_Object_Info) {
+    vertex_data_array, index_data_array, index_element_size_array, mesh_object_array := meshes.load_mesh_data_from_file(file_name, allocator)
+    return create_mesh_components(vertex_data_array, index_data_array, index_element_size_array, allocator), mesh_object_array
 }
 
 @(require_results)
