@@ -60,7 +60,7 @@ init :: proc ()
     renderer.index_buffer_offset = 0
     renderer.vertex_transfer_buffer_offset = 0
     renderer.texture_transfer_buffer_offset = 0
-    renderer.depth_texture_format = sdl.GPUTextureFormat.D24_UNORM
+    renderer.depth_texture_format = sdl.GPUTextureSupportsFormat(gpu, sdl.GPUTextureFormat.D24_UNORM, sdl.GPUTextureType.D2, {sdl.GPUTextureUsageFlag.DEPTH_STENCIL_TARGET}) ? sdl.GPUTextureFormat.D24_UNORM : sdl.GPUTextureFormat.D16_UNORM
     renderer.depth_texture = sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
         type = sdl.GPUTextureType.D2,
         format = renderer.depth_texture_format,
