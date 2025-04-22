@@ -181,19 +181,6 @@ init :: proc ()
             mesh_components[mesh_object.mesh_index],
         )
     }
-    for mesh_component in mesh_components {
-        game.create_entity_and_components(
-            game.Transform_Component{
-                value = matrix[4,4]f32{
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, -10,
-                    0, 0, 0, 1,
-                }
-            },
-            mesh_component,
-        )
-    }
 
     vertex_transfer_buffer_size := renderer.vertex_transfer_buffer_offset
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
