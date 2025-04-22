@@ -145,9 +145,9 @@ init :: proc ()
     game.create_entity_and_components(
         game.Transform_Component{
             value = matrix[4,4]f32{
-                9, 0, 0, 0,
-                0, 9, 0, 0,
-                0, 0, 9, -10,
+                1, 0, 0, 7,
+                0, 1, 0, 4,
+                0, 0, 1, 0,
                 0, 0, 0, 1,
             }
         },
@@ -168,7 +168,7 @@ init :: proc ()
         cx: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
         cy: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
         cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
-        ct: [3]f32 = mesh_object.translation + [3]f32{0, 0, -10}
+        ct: [3]f32 = mesh_object.translation
         game.create_entity_and_components(
             game.Transform_Component{
                 value = matrix[4,4]f32{
