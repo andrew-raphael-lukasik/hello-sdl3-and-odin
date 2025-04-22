@@ -1,10 +1,10 @@
 package render
 import sdl "vendor:sdl3"
-import "core:math/linalg"
+import "core:c"
 
 
 gpu: ^sdl.GPUDevice
-window_size: [2]i32 = {1280, 780}
+window_size: [2]c.int = {1280, 780}
 window: ^sdl.Window
 renderer: Renderer_State
 default_texture: ^sdl.GPUTexture

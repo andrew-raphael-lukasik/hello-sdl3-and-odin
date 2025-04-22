@@ -13,6 +13,9 @@ Renderer_State :: struct
 {
     pipeline: ^sdl.GPUGraphicsPipeline,
     sampler: ^sdl.GPUSampler,
+    depth_texture: ^sdl.GPUTexture,
+    depth_texture_format: sdl.GPUTextureFormat,
+    depth_stencil_target_info: sdl.GPUDepthStencilTargetInfo,
 
     vertex_buffer: ^sdl.GPUBuffer,
     vertex_buffer_offset: u32,

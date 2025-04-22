@@ -48,27 +48,39 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
-    renderer = Renderer_State{
-        pipeline = nil,
-        sampler = nil,
-
-        vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
-            usage = { sdl.GPUBufferUsageFlag.VERTEX },
-            size = 128_000 * size_of(meshes.Vertex_Data),
-        }),
-        vertex_buffer_offset = 0,
-        
-        index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
-            usage = { sdl.GPUBufferUsageFlag.INDEX },
-            size =  128_000 * size_of(2),
-        }),
-        index_buffer_offset = 0,
-
-        vertex_transfer_buffer_offset = 0,
-        texture_transfer_buffer_offset = 0,
-
-        draw_calls = make([dynamic]Draw_Call_Data, 0, 32),
+    renderer.vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+        usage = { sdl.GPUBufferUsageFlag.VERTEX },
+        size = 128_000 * size_of(meshes.Vertex_Data),
+    })
+    renderer.vertex_buffer_offset = 0
+    renderer.index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+        usage = { sdl.GPUBufferUsageFlag.INDEX },
+        size =  128_000 * size_of(2),
+    })
+    renderer.index_buffer_offset = 0
+    renderer.vertex_transfer_buffer_offset = 0
+    renderer.texture_transfer_buffer_offset = 0
+    renderer.depth_texture_format = sdl.GPUTextureFormat.D24_UNORM
+    renderer.depth_texture = sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
+        type = sdl.GPUTextureType.D2,
+        format = renderer.depth_texture_format,
+        usage = { sdl.GPUTextureUsageFlag.DEPTH_STENCIL_TARGET },
+        width = u32(window_size.x),
+        height = u32(window_size.y),
+        layer_count_or_depth = 1,
+        num_levels = 1,
+    })
+    renderer.depth_stencil_target_info = sdl.GPUDepthStencilTargetInfo{
+        texture = renderer.depth_texture,
+        clear_depth = 1,
+        load_op = sdl.GPULoadOp.CLEAR,
+        store_op = sdl.GPUStoreOp.DONT_CARE,
+        // stencil_load_op = sdl.GPULoadOp.CLEAR,
+        // stencil_store_op = sdl.GPUStoreOp.DONT_CARE,
+        // cycle:            bool,         /**< true cycles the texture if the texture is bound and any load ops are not LOAD */
+        // clear_stencil:    Uint8,        /**< The value to clear the stencil component to at the beginning of the render pass. Ignored if GPU_LOADOP_CLEAR is not used. */
     }
+    renderer.draw_calls = make([dynamic]Draw_Call_Data, 0, 32)
 
     {
         path := app.path_to_abs("/data/default_shader.spv.vert", context.temp_allocator)
@@ -290,11 +302,33 @@ init :: proc ()
             vertex_attributes = raw_data(meshes.vertex_data_attrs),
             num_vertex_attributes = u32(len(meshes.vertex_data_attrs)),
         },
-        target_info = {
-            num_color_targets = 1,
+        depth_stencil_state = sdl.GPUDepthStencilState{
+            compare_op = sdl.GPUCompareOp.LESS,
+            back_stencil_state = sdl.GPUStencilOpState{
+                // fail_op:       GPUStencilOp, /**< The action performed on samples that fail the stencil test. */
+                // pass_op:       GPUStencilOp, /**< The action performed on samples that pass the depth and stencil tests. */
+                // depth_fail_op: GPUStencilOp, /**< The action performed on samples that pass the stencil test and fail the depth test. */
+                // compare_op:    GPUCompareOp, /**< The comparison operator used in the stencil test. */
+            },  /**< The stencil op state for back-facing triangles. */
+            front_stencil_state = sdl.GPUStencilOpState{
+                // fail_op:       GPUStencilOp, /**< The action performed on samples that fail the stencil test. */
+                // pass_op:       GPUStencilOp, /**< The action performed on samples that pass the depth and stencil tests. */
+                // depth_fail_op: GPUStencilOp, /**< The action performed on samples that pass the stencil test and fail the depth test. */
+                // compare_op:    GPUCompareOp, /**< The comparison operator used in the stencil test. */
+            },  /**< The stencil op state for front-facing triangles. */
+            // compare_mask:        Uint8,              /**< Selects the bits of the stencil values participating in the stencil test. */
+            // write_mask:          Uint8,              /**< Selects the bits of the stencil values updated by the stencil test. */
+            enable_depth_test = true,
+            enable_depth_write = true,
+            // enable_stencil_test = false,/**< true enables the stencil test. */
+        },
+        target_info = sdl.GPUGraphicsPipelineTargetInfo{
             color_target_descriptions = &(sdl.GPUColorTargetDescription{
                 format = sdl.GetGPUSwapchainTextureFormat(gpu, window)
-            })
+            }),
+            num_color_targets = 1,
+            depth_stencil_format = renderer.depth_texture_format,
+            has_depth_stencil_target = true,
         }
     } )
 
@@ -307,6 +341,7 @@ init :: proc ()
 close :: proc ()
 {
     sdl.DestroyWindow(window)
+    sdl.ReleaseGPUTexture(gpu, renderer.depth_texture)
     sdl.Quit()
     delete_dynamic_array(renderer.draw_calls)
     delete_dynamic_array(gpu_mesh_buffer_transfer_queue)
@@ -370,7 +405,7 @@ tick :: proc ()
             store_op = .STORE ,
         }
 
-        render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, nil)
+        render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, &renderer.depth_stencil_target_info)
         {
             sdl.BindGPUGraphicsPipeline(render_pass, renderer.pipeline)
 
