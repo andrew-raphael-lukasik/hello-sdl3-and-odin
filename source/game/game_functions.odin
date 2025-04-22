@@ -93,7 +93,7 @@ create_entity :: proc () -> Entity
         version = 1,
     }
     entities_index += 1
-    entities[entity] = 1
+    entities[entity] = true
     return entity
 }
 
@@ -112,7 +112,7 @@ create_entity_and_components :: proc ( args: ..Component) -> Entity
 destroy_entity :: proc (entity: Entity) -> bool
 {
     if exists_entity(entity) {
-        entities[entity] = 0
+        entities[entity] = false
         if components[entity]!=nil{
             delete_dynamic_array(components[entity])
             components[entity] = nil
@@ -124,5 +124,5 @@ destroy_entity :: proc (entity: Entity) -> bool
 
 exists_entity :: proc (entity: Entity) -> bool
 {
-    return entities[entity]==1
+    return entities[entity]==true
 }
