@@ -480,12 +480,12 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
 }
 
 create_mesh_components_from_file :: proc(file_name: string, allocator := context.allocator) -> []game.Mesh_Component {
-    a, b := meshes.load_mesh_data_from_file(file_name, allocator)
-    return create_mesh_components(a, b, allocator)
+    a, b, c := meshes.load_mesh_data_from_file(file_name, allocator)
+    return create_mesh_components(a, b, c, allocator)
 }
 
 @(require_results)
-create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data, index_data: [][]u16, allocator := context.allocator) -> []game.Mesh_Component {
+create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data, index_data: [][]byte, index_size: []sdl.GPUIndexElementSize, allocator := context.allocator) -> []game.Mesh_Component {
     assert(len(vertex_data)==len(index_data))
     log.debugf("len(vertex_data): {}, len(index_data): {}", len(vertex_data), len(index_data))
     num_items := len(vertex_data)
@@ -493,9 +493,17 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data, index_data: 
     
     for i:=0 ; i<num_items ; i+=1 {
         indices := index_data[i]
+        index_element_size := index_size[i]
+        index_element_stride: u32
+        switch  index_size[i]
+        {
+            case sdl.GPUIndexElementSize._16BIT: index_element_stride = 2
+            case sdl.GPUIndexElementSize._32BIT: index_element_stride = 4
+            case: assert(false, fmt.aprintf("{} not implemented", index_size[i]))
+        }
         vertices := vertex_data[i]
         
-        mesh_vertex_buffer_offset := renderer.vertex_buffer_offset
+        mesh_vertex_buffer_start := renderer.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = &vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
@@ -506,23 +514,24 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data, index_data: 
         )
         renderer.vertex_buffer_offset += app.num_bytes_of_u32(&vertices)
 
-        vertex_indices_slice := indices[:]
-        mesh_index_buffer_offset := renderer.index_buffer_offset
-        mesh_vertex_buffer_num_indices := u32(len(indices[:]))
+        indices_slice := indices[:]
+        mesh_index_buffer_start := renderer.index_buffer_offset
+        mesh_vertex_buffer_num_indices := app.num_bytes_of_u32(&indices_slice) / index_element_stride
+        gpu_buffer_region := sdl.GPUBufferRegion{
+            buffer = renderer.index_buffer,
+            offset = mesh_index_buffer_start,
+            size = app.num_bytes_of_u32(&indices_slice),
+        }
         schedule_upload_to_gpu_buffer(
-            source = &vertex_indices_slice,
-            gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.index_buffer,
-                offset = mesh_index_buffer_offset,
-                size = app.num_bytes_of_u32(&vertex_indices_slice),
-            },
+            source = &indices_slice,
+            gpu_buffer_region = gpu_buffer_region,
         )
-        renderer.index_buffer_offset += app.num_bytes_of_u32(&vertex_indices_slice)
+        renderer.index_buffer_offset += gpu_buffer_region.size
         
         mesh_components[i] = game.Mesh_Component{
-            index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
-            index_buffer_offset = mesh_index_buffer_offset,
-            vertex_buffer_offset = mesh_vertex_buffer_offset,
+            index_buffer_element_size = index_size[i],
+            index_buffer_offset = mesh_index_buffer_start,
+            vertex_buffer_offset = mesh_vertex_buffer_start,
             vertex_buffer_num_indices = mesh_vertex_buffer_num_indices,
         }
     }

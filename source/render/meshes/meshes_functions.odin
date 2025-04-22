@@ -8,7 +8,7 @@ import "../../game"
 
 
 @(require_results)
-load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data, [][]u16) {
+load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data, [][]byte, []sdl.GPUIndexElementSize) {
     mesh_data, error := gltf2.load_from_file(file_name)
     switch err in error
     {
@@ -19,14 +19,16 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
     defer gltf2.unload(mesh_data)
 
     vertex_data := make([dynamic][]Vertex_Data, allocator)
-    index_data := make([dynamic][]u16, allocator)
+    index_data := make([dynamic][]byte, allocator)
+    index_size_data := make([dynamic]sdl.GPUIndexElementSize, allocator)
 
     for mesh in mesh_data.meshes
     {
-        indices: [dynamic]u16
+        indices: [dynamic]byte
         positions: [dynamic][3]f32
         uvs: [dynamic][2]f32
         colors: [dynamic][3]f32
+        index_size: sdl.GPUIndexElementSize
 
         for primitive in mesh.primitives
         {
@@ -38,26 +40,24 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
             }
 
             indices_accessor := mesh_data.accessors[indices_accessor_index]
-            switch indices_accessor.component_type
+            #partial switch indices_accessor.component_type
             {
-                case .Byte:
-                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]byte)
-                    for val in buf do append(&indices, u16(val))
-                case .Unsigned_Byte:
-                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u8)
-                    for val in buf do append(&indices, u16(val))
-                case .Short:
-                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]i16)
-                    for val in buf do append(&indices, u16(val))
                 case .Unsigned_Short:
+                    index_size = sdl.GPUIndexElementSize._16BIT
                     buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u16)
-                    for val in buf do append(&indices, u16(val))
+                    for val in buf
+                    {
+                        b2 := transmute([2]byte) val
+                        append_elems(&indices, b2[0], b2[1])
+                    }
                 case .Unsigned_Int:
+                    index_size = sdl.GPUIndexElementSize._16BIT
                     buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u32)
-                    for val in buf do append(&indices, u16(val))
-                case .Float:
-                    buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]f32)
-                    for val in buf do append(&indices, u16(val))
+                    for val in buf
+                    {
+                        b4 := transmute([4]byte) val
+                        append_elems(&indices, b4[0], b4[1], b4[2], b4[3])
+                    }
             }
 
             for attribute_name, accessor_index in primitive.attributes
@@ -121,7 +121,8 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         
         append(&vertex_data, vertices)
         append(&index_data, indices[:])
+        append(&index_size_data, index_size)
     }
 
-    return vertex_data[:], index_data[:]
+    return vertex_data[:], index_data[:], index_size_data[:]
 }
