@@ -24,7 +24,12 @@ init :: proc ()
 
 close :: proc ()
 {
-
+    delete_map(entities)
+    
+    for entity, components in components {
+        delete_dynamic_array(components)
+    }
+    delete_map(components)
 }
 
 tick :: proc ()

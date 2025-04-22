@@ -303,6 +303,7 @@ close :: proc ()
 {
     sdl.DestroyWindow(window)
     sdl.Quit()
+    delete_dynamic_array(renderer.draw_calls)
     delete_dynamic_array(gpu_mesh_buffer_transfer_queue)
     delete_dynamic_array(gpu_texture_buffer_transfer_queue)
 }
