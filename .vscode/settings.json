@@ -1,3 +1,11 @@
 {
-    "memory-view.showMemoryPanel": true
+    "search.exclude": {
+        // "assets/": true,
+        // "*.md": true,
+        "**": true,
+        "source/": false,
+    },
+    "files.exclude": {
+        "build/": true,
+    },
 }
