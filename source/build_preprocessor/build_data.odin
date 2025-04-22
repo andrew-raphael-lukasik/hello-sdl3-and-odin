@@ -12,6 +12,8 @@ paths_to_create := []string{
 }
 data_file_types_to_copy := []string{
     ".gltf",
+    ".gltb",
+    ".bin",
     ".png"
 }
 bin_files_to_copy := []string{
