@@ -54,13 +54,13 @@ init :: proc ()
 
         vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
             usage = { sdl.GPUBufferUsageFlag.VERTEX },
-            size = 32_000 * size_of(meshes.Vertex_Data),
+            size = 128_000 * size_of(meshes.Vertex_Data),
         }),
         vertex_buffer_offset = 0,
         
         index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
             usage = { sdl.GPUBufferUsageFlag.INDEX },
-            size =  32_000 * 2,
+            size =  128_000 * size_of(2),
         }),
         index_buffer_offset = 0,
 
@@ -437,6 +437,7 @@ schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPU
     append(&gpu_mesh_buffer_transfer_queue, dat)
     renderer.vertex_transfer_buffer_offset += dat.size
 
+    assert((dat.size+dat.transfer_buffer_offset)<=renderer.vertex_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_buffer()] scheduled: {}", dat)
 }
 schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
@@ -457,6 +458,7 @@ schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows
     append(&gpu_texture_buffer_transfer_queue, dat)
     renderer.texture_transfer_buffer_offset += dat.size
 
+    assert((dat.size+dat.transfer_buffer_offset)<=renderer.texture_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_texture()] scheduled: {}", dat)
 }
 schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
@@ -476,6 +478,8 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
     }
     append(&gpu_texture_buffer_transfer_queue, dat)
     renderer.texture_transfer_buffer_offset += dat.size
+
+    assert((dat.size+dat.transfer_buffer_offset)<=renderer.texture_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
 }
 
