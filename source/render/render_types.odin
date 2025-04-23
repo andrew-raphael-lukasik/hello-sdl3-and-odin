@@ -1,5 +1,6 @@
 package render
 import sdl "vendor:sdl3"
+import "meshes"
 
 
 Uniform_Buffer_Object :: struct {
@@ -11,7 +12,8 @@ Uniform_Buffer_Object :: struct {
 
 Renderer_State :: struct
 {
-    pipeline: ^sdl.GPUGraphicsPipeline,
+    pipeline_triangle_list: ^sdl.GPUGraphicsPipeline,
+    pipeline_line_list: ^sdl.GPUGraphicsPipeline,
     sampler: ^sdl.GPUSampler,
     depth_texture: ^sdl.GPUTexture,
     depth_texture_format: sdl.GPUTextureFormat,
@@ -26,7 +28,7 @@ Renderer_State :: struct
     vertex_transfer_buffer_offset: u32,
     texture_transfer_buffer_offset: u32,
 
-    draw_calls: [dynamic]Draw_Call_Data,
+    draw_calls: map[meshes.GPU_Primitive_Type][dynamic]Draw_Call_Data,
 }
 
 UploadToGPUBuffer_Queue_Data :: struct

@@ -13,6 +13,11 @@ if %errorlevel% neq 0 exit /b 1
 glslc ./shaders/default_shader__IN_col3_uv2__OUT_col4.glsl.frag -o %build_path%/data/default_shader__IN_col3_uv2__OUT_col4.spv.frag
 if %errorlevel% neq 0 exit /b 1
 
+glslc ./shaders/default_shader__IN_col3_col3__OUT_col3.glsl.vert -o %build_path%/data/default_shader__IN_col3_col3__OUT_col3.spv.vert
+if %errorlevel% neq 0 exit /b 1
+glslc ./shaders/default_shader__IN_col3__OUT_col3.glsl.frag -o %build_path%/data/default_shader__IN_col3__OUT_col3.spv.frag
+if %errorlevel% neq 0 exit /b 1
+
 odin build ./source/ -debug -out:%build_path%\bin\%project_name%.exe
 if %errorlevel% neq 0 exit /b 1
 
