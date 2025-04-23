@@ -21,6 +21,7 @@ main :: proc ()
 
     for app.alive!=0
     {
+        free_all(context.temp_allocator)
         app.tick()
         input.tick()
         game.tick()
