@@ -80,13 +80,13 @@ tick :: proc ()
                 www := transform.value[3].xyz
                 
                 // mouse look
-                rot := linalg.quaternion_angle_axis_f32(input.action_mouse_move[0] * camera_look_sensitivity[0], {0, -1, 0}) * linalg.quaternion_angle_axis_f32(input.action_mouse_move[1] * camera_look_sensitivity[1], -xxx)
+                rot := linalg.quaternion_angle_axis_f32(input.action_mouse_move.x * camera_look_sensitivity.x, {0, -1, 0}) * linalg.quaternion_angle_axis_f32(input.action_mouse_move.y * camera_look_sensitivity.y, -xxx)
                 xxx = linalg.quaternion_mul_vector3(rot, linalg.normalize(xxx))
                 yyy = linalg.quaternion_mul_vector3(rot, linalg.normalize(yyy))
                 zzz = linalg.cross(xxx, yyy)
 
                 // move
-                www += (xxx * input.action_move[0] + -zzz * input.action_move[1] + yyy * (input.action_jump - input.action_crouch)) * dt * 10
+                www += (xxx * input.action_move.x + -zzz * input.action_move.y + yyy * (input.action_jump - input.action_crouch)) * dt * 10
                 
                 
                 // write back
