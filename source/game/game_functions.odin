@@ -2,6 +2,7 @@ package game
 import "core:math"
 import "core:log"
 import "core:math/linalg"
+import sdl "vendor:sdl3"
 import "../app"
 import "../input"
 
@@ -14,7 +15,7 @@ init :: proc ()
             value = matrix[4,4]f32{
                 1, 0, 0, 0,
                 0, 1, 0, 0,
-                0, 0, 1, -10,
+                0, 0, 1, 10,
                 0, 0, 0, 1,
             }
         },
@@ -67,17 +68,35 @@ tick :: proc ()
         }
     }
 
-    // handle camera movement:
+    // handle camera movement & rotation:
     if comps, exist := components[main_camera]; exist {
         comp_index := 0
         for comp in comps {
             if transform, is := comp.(Transform_Component); is {
                 dt := f32(app.time_delta)
-                left := -linalg.normalize([3]f32{transform.value[0][0], transform.value[0][1], transform.value[0][2]})
-                forward := linalg.normalize([3]f32{transform.value[2][0], transform.value[2][1], transform.value[2][2]})
-                step := (left * input.move[0] + forward * input.move[1]) * dt * 10
+                xxx := transform.value[0].xyz
+                yyy := transform.value[1].xyz
+                zzz := transform.value[2].xyz
+                www := transform.value[3].xyz
+                
+                // mouse look
+                rot := linalg.quaternion_angle_axis_f32(input.action_mouse_move[0] * camera_look_sensitivity[0], {0, -1, 0}) * linalg.quaternion_angle_axis_f32(input.action_mouse_move[1] * camera_look_sensitivity[1], -xxx)
+                xxx = linalg.quaternion_mul_vector3(rot, linalg.normalize(xxx))
+                yyy = linalg.quaternion_mul_vector3(rot, linalg.normalize(yyy))
+                zzz = linalg.cross(xxx, yyy)
+
+                // move
+                www += (xxx * input.action_move[0] + -zzz * input.action_move[1] + yyy * (input.action_jump - input.action_crouch)) * dt * 10
+                
+                
+                // write back
                 comps[comp_index] = Transform_Component{
-                    value = transform.value * linalg.matrix4_translate_f32(step)
+                    value = {
+                        xxx[0], yyy[0], zzz[0], www.x,
+                        xxx[1], yyy[1], zzz[1], www.y,
+                        xxx[2], yyy[2], zzz[2], www.z,
+                        0, 0, 0, 1,
+                    }
                 }
             }
         }

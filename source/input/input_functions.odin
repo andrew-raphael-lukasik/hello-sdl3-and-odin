@@ -18,8 +18,10 @@ close :: proc ()
 
 tick :: proc ()
 {
-    move = {0, 0}
-    mouse_move = {0, 0}
+    action_move = {0, 0}
+    action_mouse_move = {0, 0}
+    action_jump = 0
+    action_crouch = 0
     clear(&key_up)
     clear(&mouse_up)
     
@@ -33,21 +35,24 @@ tick :: proc ()
             // KEYBOARD
             case .KEY_DOWN:
                 key_down[ev.key.scancode] = true
-                
-                if keycode==.ESCAPE do app.alive = 0
-                
-                if keycode==.LEFT do move[0] -= 1
-                if keycode==.RIGHT do move[0] += 1
-                if keycode==.DOWN do move[1] -= 1
-                if keycode==.UP do move[1] += 1
+                #partial switch keycode
+                {
+                    case .ESCAPE: app.alive = 0
+                    case .LEFT, .A: action_move[0] -= 1
+                    case .RIGHT, .D: action_move[0] += 1
+                    case .DOWN, .S: action_move[1] -= 1
+                    case .UP, .W: action_move[1] += 1
+                    case .SPACE: action_jump = 1
+                    case .LCTRL, .RCTRL: action_crouch = 1
+                }
             case .KEY_UP:
                 key_down[ev.key.scancode] = false
                 key_up[ev.key.scancode] = true
             
             // MOUSE
             case .MOUSE_MOTION:
-                mouse_move[0] = ev.motion.xrel
-                mouse_move[1] = ev.motion.yrel
+                action_mouse_move[0] = ev.motion.xrel
+                action_mouse_move[1] = ev.motion.yrel
             case .MOUSE_BUTTON_DOWN:
                 mouse_down[ev.button.button] = true
             case .MOUSE_BUTTON_UP:
