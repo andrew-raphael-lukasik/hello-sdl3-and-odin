@@ -48,6 +48,8 @@ init :: proc ()
     ok := sdl.ClaimWindowForGPUDevice(gpu, window)
     assert(ok)
 
+    is_mouse_captured := sdl.CaptureMouse(true)
+
     renderer.vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
         size = 128_000 * size_of(meshes.Vertex_Data__pos3_uv2_col3),
