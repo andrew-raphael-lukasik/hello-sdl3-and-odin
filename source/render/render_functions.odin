@@ -50,7 +50,7 @@ init :: proc ()
 
     renderer.vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
-        size = 128_000 * size_of(meshes.Vertex_Data),
+        size = 128_000 * size_of(meshes.Vertex_Data__pos3_uv2_col3),
     })
     renderer.vertex_buffer_offset = 0
     renderer.index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
@@ -210,7 +210,7 @@ init :: proc ()
         }
 
         fmt.print("VERTICES: {\n")
-        for i:u32=0 ; i<4 ; i+=1 { fmt.printf("\t{}\n", (cast([^]meshes.Vertex_Data) transfer_map)[i]) }
+        for i:u32=0 ; i<4 ; i+=1 { fmt.printf("\t{}\n", (cast([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map)[i]) }
         fmt.print("}\n")
 
         fmt.print("INDICES: {")
@@ -291,11 +291,11 @@ init :: proc ()
     renderer.pipeline = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = default_shader_vert,
         fragment_shader = default_shader_frag,
-        primitive_type = .TRIANGLELIST,
+        primitive_type = sdl.GPUPrimitiveType.TRIANGLELIST,
         vertex_input_state = {
             vertex_buffer_descriptions = &sdl.GPUVertexBufferDescription{
                 slot = 0,
-                pitch = size_of(meshes.Vertex_Data),
+                pitch = size_of(meshes.Vertex_Data__pos3_uv2_col3),
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
@@ -529,7 +529,7 @@ create_mesh_components_from_file :: proc(file_name: string, allocator := context
 }
 
 @(require_results)
-create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data, index_data: [][]byte, index_size: []sdl.GPUIndexElementSize, allocator := context.allocator) -> []game.Mesh_Component {
+create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col3, index_data: [][]byte, index_size: []sdl.GPUIndexElementSize, allocator := context.allocator) -> []game.Mesh_Component {
     assert(len(vertex_data)==len(index_data))
     log.debugf("len(vertex_data): {}, len(index_data): {}", len(vertex_data), len(index_data))
     num_items := len(vertex_data)

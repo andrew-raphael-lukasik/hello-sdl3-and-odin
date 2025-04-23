@@ -4,11 +4,10 @@ import sdl_image "vendor:sdl3/image"
 import "vendor:cgltf"
 import "core:log"
 import "../gltf2"
-import "../../game"
 
 
 @(require_results)
-load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data, [][]byte, []sdl.GPUIndexElementSize, []GLTF_Mesh_Object_Info) {
+load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data__pos3_uv2_col3, [][]byte, []sdl.GPUIndexElementSize, []GLTF_Mesh_Object_Info) {
     mesh_data, error := gltf2.load_from_file(file_name)
     switch err in error
     {
@@ -18,7 +17,7 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
 
     defer gltf2.unload(mesh_data)
 
-    vertex_data := make([dynamic][]Vertex_Data, allocator)
+    vertex_data := make([dynamic][]Vertex_Data__pos3_uv2_col3, allocator)
     index_data := make([dynamic][]byte, allocator)
     index_size_data := make([dynamic]sdl.GPUIndexElementSize, allocator)
 
@@ -101,9 +100,9 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         }
 
         num_vertices := u32(len(positions))
-        vertices := make([]Vertex_Data, num_vertices)
+        vertices := make([]Vertex_Data__pos3_uv2_col3, num_vertices)
         for i:u32 = 0 ; i<u32(len(vertices)) ; i+=1 {
-            vertices[i] = Vertex_Data{
+            vertices[i] = Vertex_Data__pos3_uv2_col3{
                 pos = {0, 0, 0},
                 uv =  {0, 0},
                 col = {1, 1, 1},
