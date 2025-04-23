@@ -1,9 +1,9 @@
 {
     "search.exclude": {
-        // "assets/": true,
+        "assets/": true,
         // "*.md": true,
-        "**": true,
-        "source/": false,
+        // "**": true,
+        // "source/": false,
     },
     "files.exclude": {
         "build/": true,
