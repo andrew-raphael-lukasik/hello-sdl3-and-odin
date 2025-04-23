@@ -8,9 +8,9 @@ if %errorlevel% neq 0 exit /b 1
 build_preprocessor.exe
 if %errorlevel% neq 0 exit /b 1
 
-glslc ./shaders/default_shader.glsl.vert -o %build_path%/data/default_shader.spv.vert
+glslc ./shaders/default_shader__IN_col3_uv2_col3__OUT_col3_uv2.glsl.vert -o %build_path%/data/default_shader__IN_col3_uv2_col3__OUT_col3_uv2.spv.vert
 if %errorlevel% neq 0 exit /b 1
-glslc ./shaders/default_shader.glsl.frag -o %build_path%/data/default_shader.spv.frag
+glslc ./shaders/default_shader__IN_col3_uv2__OUT_col4.glsl.frag -o %build_path%/data/default_shader__IN_col3_uv2__OUT_col4.spv.frag
 if %errorlevel% neq 0 exit /b 1
 
 odin build ./source/ -debug -out:%build_path%\bin\%project_name%.exe

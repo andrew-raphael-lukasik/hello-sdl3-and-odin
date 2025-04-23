@@ -83,13 +83,13 @@ init :: proc ()
     renderer.draw_calls = make([dynamic]Draw_Call_Data, 0, 32)
 
     {
-        path := app.path_to_abs("/data/default_shader.spv.vert", context.temp_allocator)
+        path := app.path_to_abs("/data/default_shader__IN_col3_uv2_col3__OUT_col3_uv2.spv.vert", context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_vert = load_shader(gpu, rawdata, .VERTEX, 1, 0)
     }
     {
-        path := app.path_to_abs("/data/default_shader.spv.frag", context.temp_allocator)
+        path := app.path_to_abs("/data/default_shader__IN_col3_uv2__OUT_col4.spv.frag", context.temp_allocator)
         rawdata, ok := os.read_entire_file(path, context.temp_allocator)
         if !ok do log.errorf("file read failed: '{}'", path)
         default_shader_frag = load_shader(gpu, rawdata, .FRAGMENT, 0, 1)
