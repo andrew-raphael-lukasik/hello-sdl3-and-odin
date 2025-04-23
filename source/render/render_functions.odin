@@ -472,7 +472,7 @@ tick :: proc ()
     view_matrix := linalg.MATRIX4F32_IDENTITY
     for comp in game.components[game.main_camera] {
         if tc, is := comp.(game.Transform_Component); is {
-            view_matrix = tc.value
+            view_matrix = linalg.inverse(tc.value)
             break
         }
     }
