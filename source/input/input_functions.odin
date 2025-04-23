@@ -8,7 +8,7 @@ INPUT_DEBUG :: #config(INPUT_DEBUG, false)
 
 init :: proc ()
 {
-     
+
 }
 
 close :: proc ()
@@ -24,11 +24,9 @@ tick :: proc ()
     clear(&mouse_up)
     
     ev: sdl.Event
-    for sdl.PollEvent(&ev)
-    {
+    for sdl.PollEvent(&ev) {
         keycode := ev.key.scancode
-        #partial switch ev.type
-        {
+        #partial switch ev.type {
             case .QUIT:
                 app.alive = 0
             
@@ -58,7 +56,8 @@ tick :: proc ()
         }
     }
 
-    when INPUT_DEBUG{
+    when INPUT_DEBUG
+    {
         for scancode in sdl.Scancode {
             if key_down[scancode] do log.debugf("input.key_down[{}]", scancode)
             if key_up[scancode] do log.debugf("input.key_up[{}]", scancode)
