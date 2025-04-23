@@ -14,7 +14,43 @@ default_quad_vertices_num_bytes := app.num_bytes_of_u32(&default_quad_vertices)
 default_quad_indices := []u16 { 0, 1, 2,   0, 2, 3, }
 default_quad_indices_num_bytes := app.num_bytes_of_u32(&default_quad_indices)
 
-vertex_data_attrs := []sdl.GPUVertexAttribute{
+vertex_attrs__pos3 := []sdl.GPUVertexAttribute{
+    {
+        location = 0,
+        buffer_slot = 0,
+        format = .FLOAT3,
+        offset = u32(offset_of(Vertex_Data, pos)),
+    }
+}
+vertex_attrs__pos3_uv2 := []sdl.GPUVertexAttribute{
+    {
+        location = 0,
+        buffer_slot = 0,
+        format = .FLOAT3,
+        offset = u32(offset_of(Vertex_Data, pos)),
+    },
+    {
+        location = 1,
+        buffer_slot = 0,
+        format = .FLOAT2,
+        offset = u32(offset_of(Vertex_Data, uv)),
+    }
+}
+vertex_attrs__pos3_col3 := []sdl.GPUVertexAttribute{
+    {
+        location = 0,
+        buffer_slot = 0,
+        format = .FLOAT3,
+        offset = u32(offset_of(Vertex_Data, pos)),
+    },
+    {
+        location = 2,
+        buffer_slot = 0,
+        format = .FLOAT3,
+        offset = u32(offset_of(Vertex_Data, col)),
+    },
+}
+vertex_attrs__pos3_uv2_col3 := []sdl.GPUVertexAttribute{
     {
         location = 0,
         buffer_slot = 0,

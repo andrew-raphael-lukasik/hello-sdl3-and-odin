@@ -299,8 +299,8 @@ init :: proc ()
                 input_rate = .VERTEX,
             },
             num_vertex_buffers = 1,
-            vertex_attributes = raw_data(meshes.vertex_data_attrs),
-            num_vertex_attributes = u32(len(meshes.vertex_data_attrs)),
+            vertex_attributes = raw_data(meshes.vertex_attrs__pos3_uv2_col3),
+            num_vertex_attributes = u32(len(meshes.vertex_attrs__pos3_uv2_col3)),
         },
         depth_stencil_state = sdl.GPUDepthStencilState{
             compare_op = sdl.GPUCompareOp.LESS,
