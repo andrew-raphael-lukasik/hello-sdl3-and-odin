@@ -185,6 +185,9 @@ init :: proc ()
         renderer.index_buffer_offset += meshes.default_quad_indices_num_bytes
 
         game.create_entity_and_components(
+            game.Label_Component{
+                value = "rotating quad"
+            },
             game.Transform_Component{
                 value = matrix[4,4]f32{
                     1, 0, 0, 7,
@@ -232,6 +235,9 @@ init :: proc ()
         renderer.index_buffer_offset += meshes.axis_indices_num_bytes
 
         game.create_entity_and_components(
+            game.Label_Component{
+                value = "world coords gizmo"
+            },
             game.Transform_Component{
                 value = matrix[4,4]f32{
                     1, 0, 0, 0,
@@ -257,6 +263,9 @@ init :: proc ()
         cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
         ct: [3]f32 = mesh_object.translation
         game.create_entity_and_components(
+            game.Label_Component{
+                value = "mesh"
+            },
             game.Transform_Component{
                 value = matrix[4,4]f32{
                     cx[0], cy[0], cz[0], ct[0],

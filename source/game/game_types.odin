@@ -13,7 +13,8 @@ Component :: union
     Transform_Component,
     Camera_Component,
     Mesh_Component,
-    Rotation_Component
+    Rotation_Component,
+    Label_Component
 }
 
 Mesh_Component :: struct
@@ -39,4 +40,9 @@ Rotation_Component :: struct
 {
     axis: [3]f32,
     speed: f32
+}
+
+Label_Component :: struct
+{
+    value: string
 }
