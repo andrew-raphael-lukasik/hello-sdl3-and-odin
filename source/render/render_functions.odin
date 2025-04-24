@@ -167,7 +167,7 @@ init :: proc ()
             source = &meshes.default_quad_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
-                offset = renderer.vertex_buffer_offset,
+                offset = vertex_buffer_pos,
                 size = meshes.default_quad_vertices_num_bytes,
             }
         )
@@ -178,7 +178,7 @@ init :: proc ()
             source = &meshes.default_quad_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.index_buffer,
-                offset = renderer.index_buffer_offset,
+                offset = index_buffer_pos,
                 size = meshes.default_quad_indices_num_bytes,
             }
         )
@@ -214,7 +214,7 @@ init :: proc ()
             source = &meshes.axis_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
-                offset = renderer.vertex_buffer_offset,
+                offset = vertex_buffer_pos,
                 size = meshes.axis_vertices_num_bytes,
             }
         )
@@ -225,7 +225,7 @@ init :: proc ()
             source = &meshes.axis_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.index_buffer,
-                offset = renderer.index_buffer_offset,
+                offset = index_buffer_pos,
                 size = meshes.axis_indices_num_bytes,
             }
         )
@@ -693,23 +693,23 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
         }
         vertices := vertex_data[i]
         
-        mesh_vertex_buffer_start := renderer.vertex_buffer_offset
+        mesh_vertex_buffer_pos := renderer.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = &vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
-                offset = renderer.vertex_buffer_offset,
+                offset = mesh_vertex_buffer_pos,
                 size = app.num_bytes_of_u32(&vertices),
             },
         )
         renderer.vertex_buffer_offset += app.num_bytes_of_u32(&vertices)
 
         indices_slice := indices[:]
-        mesh_index_buffer_start := renderer.index_buffer_offset
+        mesh_index_buffer_pos := renderer.index_buffer_offset
         mesh_vertex_buffer_num_indices := app.num_bytes_of_u32(&indices_slice) / index_element_stride
         gpu_buffer_region := sdl.GPUBufferRegion{
             buffer = renderer.index_buffer,
-            offset = mesh_index_buffer_start,
+            offset = mesh_index_buffer_pos,
             size = app.num_bytes_of_u32(&indices_slice),
         }
         schedule_upload_to_gpu_buffer(
@@ -721,8 +721,8 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
         mesh_components[i] = game.Mesh_Component{
             primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
             index_buffer_element_size = index_size[i],
-            index_buffer_offset = mesh_index_buffer_start,
-            vertex_buffer_offset = mesh_vertex_buffer_start,
+            index_buffer_offset = mesh_index_buffer_pos,
+            vertex_buffer_offset = mesh_vertex_buffer_pos,
             vertex_buffer_num_indices = mesh_vertex_buffer_num_indices,
         }
     }
