@@ -463,8 +463,6 @@ init :: proc ()
     sdl.ReleaseGPUShader(gpu, default_shader_frag)
     sdl.ReleaseGPUShader(gpu, default_shader_line_vert)
     sdl.ReleaseGPUShader(gpu, default_shader_line_frag)
-
-    sdl.GetWindowSize(window, &window_size.x, &window_size.y)
 }
 
 close :: proc ()
@@ -479,6 +477,7 @@ close :: proc ()
 
 tick :: proc ()
 {
+    sdl.GetWindowSize(window, &window_size.x, &window_size.y)
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
     for comp in game.components[game.main_camera] {
