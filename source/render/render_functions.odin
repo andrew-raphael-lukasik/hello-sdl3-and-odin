@@ -408,7 +408,18 @@ init :: proc ()
         },
         target_info = sdl.GPUGraphicsPipelineTargetInfo{
             color_target_descriptions = &(sdl.GPUColorTargetDescription{
-                format = sdl.GetGPUSwapchainTextureFormat(gpu, window)
+                format = sdl.GetGPUSwapchainTextureFormat(gpu, window),
+                // blend_state = sdl.GPUColorTargetBlendState{
+                //     enable_blend = false,
+                //     src_color_blendfactor = sdl.GPUBlendFactor.ONE,
+                //     dst_color_blendfactor = sdl.GPUBlendFactor.ZERO,
+                //     color_blend_op = sdl.GPUBlendOp.ADD,
+                //     src_alpha_blendfactor = sdl.GPUBlendFactor.ONE,
+                //     dst_alpha_blendfactor = sdl.GPUBlendFactor.ZERO,
+                //     alpha_blend_op = sdl.GPUBlendOp.ADD,
+                //     enable_color_write_mask = false,
+                //     color_write_mask = {(sdl.GPUColorComponentFlag.R | sdl.GPUColorComponentFlag.G | sdl.GPUColorComponentFlag.B | sdl.GPUColorComponentFlag.A)},
+                // },
             }),
             num_color_targets = 1,
             depth_stencil_format = renderer.depth_texture_format,
@@ -451,7 +462,18 @@ init :: proc ()
         },
         target_info = sdl.GPUGraphicsPipelineTargetInfo{
             color_target_descriptions = &(sdl.GPUColorTargetDescription{
-                format = sdl.GetGPUSwapchainTextureFormat(gpu, window)
+                format = sdl.GetGPUSwapchainTextureFormat(gpu, window),
+                // blend_state = sdl.GPUColorTargetBlendState{
+                //     enable_blend = false,
+                //     src_color_blendfactor = sdl.GPUBlendFactor.ONE,
+                //     dst_color_blendfactor = sdl.GPUBlendFactor.ZERO,
+                //     color_blend_op = sdl.GPUBlendOp.ADD,
+                //     src_alpha_blendfactor = sdl.GPUBlendFactor.ONE,
+                //     dst_alpha_blendfactor = sdl.GPUBlendFactor.ZERO,
+                //     alpha_blend_op = sdl.GPUBlendOp.ADD,
+                //     enable_color_write_mask = false,
+                //     color_write_mask = {(sdl.GPUColorComponentFlag.R | sdl.GPUColorComponentFlag.G | sdl.GPUColorComponentFlag.B | sdl.GPUColorComponentFlag.A)},
+                // },
             }),
             num_color_targets = 1,
             depth_stencil_format = renderer.depth_texture_format,
