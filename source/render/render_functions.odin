@@ -189,12 +189,8 @@ init :: proc ()
                 value = "rotating quad"
             },
             game.Transform_Component{
-                value = matrix[4,4]f32{
-                    1, 0, 0, 7,
-                    0, 1, 0, 4,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1,
-                }
+                matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+                translation = {7, 4, 0},
             },
             game.Mesh_Component{
                 primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
@@ -239,12 +235,8 @@ init :: proc ()
                 value = "world coords gizmo"
             },
             game.Transform_Component{
-                value = matrix[4,4]f32{
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1,
-                }
+                matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+                translation = {0, 0, 0},
             },
             game.Mesh_Component{
                 primitive_type = meshes.GPU_Primitive_Type.LINELIST,
@@ -258,21 +250,21 @@ init :: proc ()
 
     mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/default_cube.gltf"))
     for mesh_object in mesh_objects {
-        cx: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
-        cy: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
-        cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
-        ct: [3]f32 = mesh_object.translation
+        xxx := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
+        yyy := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
+        zzz := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
+        pos := mesh_object.translation
         game.create_entity_and_components(
             game.Label_Component{
                 value = "mesh"
             },
             game.Transform_Component{
-                value = matrix[4,4]f32{
-                    cx[0], cy[0], cz[0], ct[0],
-                    cx[1], cy[1], cz[1], ct[1],
-                    cx[2], cy[2], cz[2], ct[2],
-                    0, 0, 0, 1,
-                }
+                matrix3x3 = matrix[3,3]f32{
+                    xxx[0], yyy[0], zzz[0],
+                    xxx[1], yyy[1], zzz[1],
+                    xxx[2], yyy[2], zzz[2],
+                },
+                translation = pos,
             },
             mesh_components[mesh_object.mesh_index],
         )
@@ -503,8 +495,10 @@ tick :: proc ()
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
     for comp in game.components[game.main_camera] {
-        if tc, is := comp.(game.Transform_Component); is {
-            view_matrix = linalg.inverse(tc.value)
+        if transform, is := comp.(game.Transform_Component); is {
+            m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
+            m4x4[3].xyz = transform.translation
+            view_matrix = linalg.inverse(m4x4)
             break
         }
     }
@@ -533,8 +527,10 @@ tick :: proc ()
             }
             if mesh_found==1 && transform_found==1 {
                 draw_calls_array := renderer.draw_calls[mesh.primitive_type]
+                m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
+                m4x4[3].xyz = transform.translation
                 append(&draw_calls_array, Draw_Call_Data{
-                    model_matrix = transform.value,
+                    model_matrix = m4x4,
                     index_buffer_element_size = mesh.index_buffer_element_size,
                     index_buffer_offset = mesh.index_buffer_offset,
                     vertex_buffer_offset = mesh.vertex_buffer_offset,

@@ -28,7 +28,8 @@ Mesh_Component :: struct
 
 Transform_Component :: struct
 {
-    value: matrix[4,4]f32
+    matrix3x3: matrix[3,3]f32,
+    translation: [3]f32,
 }
 
 Camera_Component :: struct

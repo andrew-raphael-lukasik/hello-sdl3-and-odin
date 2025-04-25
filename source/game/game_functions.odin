@@ -12,12 +12,8 @@ init :: proc ()
     // create main camera entity
     main_camera = create_entity_and_components(
         Transform_Component{
-            value = matrix[4,4]f32{
-                1, 0, 0, 0,
-                0, 1, 0, 0,
-                0, 0, 1, 10,
-                0, 0, 0, 1,
-            }
+            matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+            translation = {0, 0, 10},
         },
         Camera_Component{},
     )
@@ -58,7 +54,8 @@ tick :: proc ()
                 }
                 if rotate_index!=-1 && transform_index!=-1 {
                     comps[transform_index] = Transform_Component{
-                        value = transform.value * linalg.matrix4_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * rotate.speed, rotate.axis)
+                        matrix3x3 = transform.matrix3x3 * linalg.matrix3_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * rotate.speed, rotate.axis),
+                        translation = transform.translation,
                     }
                     rotate_index = -1
                     transform_index = -1
@@ -74,10 +71,10 @@ tick :: proc ()
         for comp in comps {
             if transform, is := comp.(Transform_Component); is {
                 dt := f32(app.time_delta)
-                xxx := transform.value[0].xyz
-                yyy := transform.value[1].xyz
-                zzz := transform.value[2].xyz
-                www := transform.value[3].xyz
+                xxx := transform.matrix3x3[0]
+                yyy := transform.matrix3x3[1]
+                zzz := transform.matrix3x3[2]
+                pos := transform.translation
                 
                 // mouse look
                 if input.action_mouse_move!={0, 0} {
@@ -92,16 +89,16 @@ tick :: proc ()
                 }
                 
                 // move
-                www += (xxx * input.action_move.x + -zzz * input.action_move.y + yyy * (input.action_jump - input.action_crouch)) * dt * 10
+                pos += (xxx * input.action_move.x + -zzz * input.action_move.y + yyy * (input.action_jump - input.action_crouch)) * dt * 10
                 
                 // write back
                 comps[comp_index] = Transform_Component{
-                    value = {
-                        xxx[0], yyy[0], zzz[0], www.x,
-                        xxx[1], yyy[1], zzz[1], www.y,
-                        xxx[2], yyy[2], zzz[2], www.z,
-                        0, 0, 0, 1,
-                    }
+                    matrix3x3 = matrix[3,3]f32{
+                        xxx[0], yyy[0], zzz[0],
+                        xxx[1], yyy[1], zzz[1],
+                        xxx[2], yyy[2], zzz[2],
+                    },
+                    translation = pos,
                 }
             }
         }
