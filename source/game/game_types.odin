@@ -40,7 +40,8 @@ Camera_Component :: struct
 Rotation_Component :: struct
 {
     axis: [3]f32,
-    speed: f32
+    speed: f32,
+    offset: f32,
 }
 
 Label_Component :: struct

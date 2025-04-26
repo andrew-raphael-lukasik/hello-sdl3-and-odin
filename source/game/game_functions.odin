@@ -54,7 +54,7 @@ tick :: proc ()
                 }
                 if rotate_index!=-1 && transform_index!=-1 {
                     comps[transform_index] = Transform_Component{
-                        matrix3x3 = transform.matrix3x3 * linalg.matrix3_rotate_f32(f32(linalg.TAU) * f32(app.time_delta) * rotate.speed, rotate.axis),
+                        matrix3x3 = linalg.matrix3_rotate_f32(f32(linalg.TAU) * (f32(app.time_tick) + rotate.offset) * rotate.speed, rotate.axis),
                         translation = transform.translation,
                     }
                     rotate_index = -1

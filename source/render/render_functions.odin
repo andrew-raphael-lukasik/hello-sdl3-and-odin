@@ -11,6 +11,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import "core:log"
+import "core:math/rand"
 import "../app"
 import "../game"
 import "meshes"
@@ -202,6 +203,7 @@ init :: proc ()
             game.Rotation_Component{
                 speed = 0.23,
                 axis = {0,1,0},
+                offset = rand.float32() * 10
             },
         )
     }
