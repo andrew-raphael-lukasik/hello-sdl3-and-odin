@@ -287,13 +287,8 @@ init :: proc ()
             fmt.printf("MESH mem.copy( transfer_map[{}:], source: %p, size: %d )\n", item.transfer_buffer_offset, item.source, item.size)
         }
 
-        fmt.print("default quad mesh vertices: {\n")
-        for i:u32=0 ; i<4 ; i+=1 { fmt.printf("\t{}\n", (cast([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map)[i]) }
-        fmt.print("}\n")
-
-        fmt.print("default quad mesh indices: {")
-        for i:u32=64 ; i<64+6 ; i+=1 { fmt.printf(", {}", (cast([^]u16) transfer_map)[i]) }
-        fmt.print("}\n")
+        game.log_print_slice((transmute([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map) [:4], "default quad mesh vertices", true)
+        game.log_print_slice((transmute([^]u16) transfer_map) [64:64+6], "default quad mesh indices", false)
 
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer)
     }
@@ -479,6 +474,8 @@ init :: proc ()
     sdl.ReleaseGPUShader(gpu, default_shader_frag)
     sdl.ReleaseGPUShader(gpu, default_shader_line_vert)
     sdl.ReleaseGPUShader(gpu, default_shader_line_frag)
+
+    game.log_print_entity_components()
 }
 
 close :: proc ()
