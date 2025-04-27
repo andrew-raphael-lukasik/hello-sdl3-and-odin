@@ -198,7 +198,7 @@ init :: proc ()
                 index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
                 index_buffer_offset = index_buffer_pos,
                 vertex_buffer_offset = vertex_buffer_pos,
-                vertex_buffer_num_indices = u32(len(meshes.default_quad_indices)),
+                index_buffer_num_elements = u32(len(meshes.default_quad_indices)),
             },
             game.Rotation_Component{
                 speed = 0.23,
@@ -245,7 +245,7 @@ init :: proc ()
                 index_buffer_element_size = sdl.GPUIndexElementSize._16BIT,
                 index_buffer_offset = index_buffer_pos,
                 vertex_buffer_offset = vertex_buffer_pos,
-                vertex_buffer_num_indices = u32(len(meshes.axis_indices)),
+                index_buffer_num_elements = u32(len(meshes.axis_indices)),
             },
         )
     }
@@ -530,10 +530,10 @@ tick :: proc ()
                 m4x4[3].xyz = transform.translation
                 append(&draw_calls_array, Draw_Call_Data{
                     model_matrix = m4x4,
-                    index_buffer_element_size = mesh.index_buffer_element_size,
                     index_buffer_offset = mesh.index_buffer_offset,
+                    index_buffer_element_size = mesh.index_buffer_element_size,
+                    index_buffer_num_elements = mesh.index_buffer_num_elements,
                     vertex_buffer_offset = mesh.vertex_buffer_offset,
-                    vertex_buffer_num_indices = mesh.vertex_buffer_num_indices,
                 })
                 renderer.draw_calls[mesh.primitive_type] = draw_calls_array
                 assert(len(renderer.draw_calls[mesh.primitive_type])!=0)
@@ -578,7 +578,7 @@ tick :: proc ()
                 )
                 sdl.DrawGPUIndexedPrimitives(
                     render_pass = render_pass,
-                    num_indices = draw.vertex_buffer_num_indices,
+                    num_indices = draw.index_buffer_num_elements,
                     num_instances = 1,
                     first_index = 0,
                     vertex_offset = 0,
@@ -602,7 +602,7 @@ tick :: proc ()
                 sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
                 sdl.DrawGPUPrimitives(
                     render_pass = render_pass,
-                    num_vertices = draw.vertex_buffer_num_indices,
+                    num_vertices = draw.index_buffer_num_elements,
                     num_instances = 1,
                     first_vertex = 0,
                     first_instance = 0,
@@ -731,7 +731,7 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
 
         indices_slice := indices[:]
         mesh_index_buffer_pos := renderer.index_buffer_offset
-        mesh_vertex_buffer_num_indices := app.num_bytes_of_u32(&indices_slice) / index_element_stride
+        num_indices := app.num_bytes_of_u32(&indices_slice) / index_element_stride
         gpu_buffer_region := sdl.GPUBufferRegion{
             buffer = renderer.index_buffer,
             offset = mesh_index_buffer_pos,
@@ -745,10 +745,10 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
         
         mesh_components[i] = game.Mesh_Component{
             primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
-            index_buffer_element_size = index_size[i],
             index_buffer_offset = mesh_index_buffer_pos,
+            index_buffer_element_size = index_size[i],
+            index_buffer_num_elements = num_indices,
             vertex_buffer_offset = mesh_vertex_buffer_pos,
-            vertex_buffer_num_indices = mesh_vertex_buffer_num_indices,
         }
     }
 
