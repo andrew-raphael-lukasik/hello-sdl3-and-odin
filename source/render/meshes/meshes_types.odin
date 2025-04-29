@@ -31,9 +31,9 @@ GLTF_Mesh_Object_Info :: struct {
 }
 
 GPU_Primitive_Type :: enum u8 {
-	TRIANGLELIST,  /**< A series of separate triangles. */
-	// TRIANGLESTRIP, /**< A series of connected triangles. */
-	LINELIST,      /**< A series of separate lines. */
-	// LINESTRIP,     /**< A series of connected lines. */
-	// POINTLIST,     /**< A series of separate points. */
+    TRIANGLELIST,  /**< A series of separate triangles. */
+    // TRIANGLESTRIP, /**< A series of connected triangles. */
+    LINELIST,      /**< A series of separate lines. */
+    // LINESTRIP,     /**< A series of connected lines. */
+    // POINTLIST,     /**< A series of separate points. */
 }
