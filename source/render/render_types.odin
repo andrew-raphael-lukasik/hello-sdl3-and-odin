@@ -53,8 +53,8 @@ Draw_Call_Data :: struct
     model_matrix: matrix[4, 4]f32,
 
     index_buffer_offset: u32,
-    index_buffer_element_size: sdl.GPUIndexElementSize,
-    index_buffer_num_elements: u32,
+    index_buffer_stride: u8,
+    index_buffer_length: u32,
 
     vertex_buffer_offset: u32,
 }

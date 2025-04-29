@@ -1,5 +1,6 @@
 package game
 import sdl "vendor:sdl3"
+import "base:runtime"
 import "../render/meshes"
 
 
@@ -20,10 +21,15 @@ Component :: union
 Mesh_Component :: struct
 {
     primitive_type: meshes.GPU_Primitive_Type,
-    index_buffer_element_size: sdl.GPUIndexElementSize,
+    
     index_buffer_offset: u32,
+    index_buffer_stride: u8,
+    index_buffer_length: u32,
+    
     vertex_buffer_offset: u32,
-    index_buffer_num_elements: u32,
+    vertex_buffer_stride: u8,
+    vertex_buffer_length: u32,
+    vertex_buffer_type: typeid,
 }
 
 Transform_Component :: struct

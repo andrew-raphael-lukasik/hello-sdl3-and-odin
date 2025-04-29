@@ -7,7 +7,7 @@ import "../gltf2"
 
 
 @(require_results)
-load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data__pos3_uv2_col3, [][]byte, []sdl.GPUIndexElementSize, []GLTF_Mesh_Object_Info) {
+load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data__pos3_uv2_col3, [][]byte, []u8, []GLTF_Mesh_Object_Info) {
     mesh_data, error := gltf2.load_from_file(file_name)
     switch err in error
     {
@@ -19,7 +19,7 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
 
     vertex_data := make([dynamic][]Vertex_Data__pos3_uv2_col3, allocator)
     index_data := make([dynamic][]byte, allocator)
-    index_size_data := make([dynamic]sdl.GPUIndexElementSize, allocator)
+    index_stride_data := make([dynamic]u8, allocator)
 
     for mesh in mesh_data.meshes
     {
@@ -120,7 +120,7 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         
         append(&vertex_data, vertices)
         append(&index_data, indices[:])
-        append(&index_size_data, index_size)
+        append(&index_stride_data, index_size==._16BIT?2:4)
     }
 
     mesh_objects := make_dynamic_array([dynamic]GLTF_Mesh_Object_Info)
@@ -136,5 +136,5 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         }
     }
 
-    return vertex_data[:], index_data[:], index_size_data[:], mesh_objects[:]
+    return vertex_data[:], index_data[:], index_stride_data[:], mesh_objects[:]
 }
