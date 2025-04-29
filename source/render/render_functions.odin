@@ -298,8 +298,8 @@ init :: proc ()
             fmt.printf("MESH mem.copy( transfer_map[{}:], source: %p, size: %d )\n", item.transfer_buffer_offset, item.source, item.size)
         }
 
-        game.log_print_slice((transmute([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map) [:4], "default quad mesh vertices", true)
-        game.log_print_slice((transmute([^]u16) transfer_map) [64:64+6], "default quad mesh indices", false)
+        app.log_print_slice((transmute([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map) [:4], "default quad mesh vertices", true)
+        app.log_print_slice((transmute([^]u16) transfer_map) [64:64+6], "default quad mesh indices", false)
 
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer)
     }
