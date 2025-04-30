@@ -4,7 +4,7 @@ import "core:strings"
 import "core:fmt"
 
 
-log_print_entity_components :: proc () {
+log_print_entity_components :: proc (location := #caller_location) {
     builder: strings.Builder
     strings.builder_init(&builder, context.temp_allocator)
     defer strings.builder_destroy(&builder)
@@ -18,5 +18,5 @@ log_print_entity_components :: proc () {
     }
 
     text := strings.to_string(builder)
-    log.debug(text)
+    log.debug(text, location)
 }
