@@ -16,7 +16,7 @@ log_print_slice :: proc (slice: []$E, prefix: string, multiple_lines: bool, loca
             for i:=0 ; i<length ; i+=1 do fmt.sbprintf(&builder, "\t{}\n", slice[i])
         }
         else {
-            fmt.sbprintf(&builder, "\n%s: {{{}", prefix, slice[0])
+            fmt.sbprintf(&builder, "\n%s: [{}]{}{{{}", prefix, len(slice), typeid_of(E), slice[0])
             for i:=1 ; i<length ; i+=1 do fmt.sbprintf(&builder, ", {}", slice[i])
         }
         fmt.sbprint(&builder, "}\n")
