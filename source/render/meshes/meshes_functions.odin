@@ -3,6 +3,7 @@ import sdl "vendor:sdl3"
 import sdl_image "vendor:sdl3/image"
 import "vendor:cgltf"
 import "core:log"
+import "core:mem"
 import "../gltf2"
 
 
@@ -41,21 +42,21 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
             indices_accessor := mesh_data.accessors[indices_accessor_index]
             #partial switch indices_accessor.component_type
             {
-                case .Unsigned_Short:
+                case .Unsigned_Short:// u16
                     index_size = sdl.GPUIndexElementSize._16BIT
                     buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u16)
-                    for val in buf
-                    {
-                        b2 := transmute([2]byte) val
-                        append_elems(&indices, b2[0], b2[1])
+                    for val in buf {
+                        for b in mem.any_to_bytes(val) {
+                            append(&indices, b)
+                        }
                     }
-                case .Unsigned_Int:
-                    index_size = sdl.GPUIndexElementSize._16BIT
+                case .Unsigned_Int:// u32
+                    index_size = sdl.GPUIndexElementSize._32BIT
                     buf := gltf2.buffer_slice(mesh_data, indices_accessor_index).([]u32)
-                    for val in buf
-                    {
-                        b4 := transmute([4]byte) val
-                        append_elems(&indices, b4[0], b4[1], b4[2], b4[3])
+                    for val in buf {
+                        for b in mem.any_to_bytes(val) {
+                            append(&indices, b)
+                        }
                     }
             }
 
