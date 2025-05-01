@@ -24,14 +24,19 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
 
     for mesh in mesh_data.meshes
     {
-        indices: [dynamic]byte
-        positions: [dynamic][3]f32
-        uvs: [dynamic][2]f32
-        colors: [dynamic][3]f32
-        index_size: sdl.GPUIndexElementSize
-
         for primitive in mesh.primitives
         {
+            if primitive.mode!=.Triangles {
+                log.errorf("Unsupported primitive type: {}", primitive.mode)
+                continue
+            }
+
+            indices: [dynamic]byte
+            positions: [dynamic][3]f32
+            uvs: [dynamic][2]f32
+            colors: [dynamic][3]f32
+            index_size: sdl.GPUIndexElementSize
+
             indices_accessor_index, primitive_indices_exists := primitive.indices.?
             if !primitive_indices_exists
             {
@@ -98,30 +103,30 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
                         }
                 }
             }
-        }
 
-        num_vertices := u32(len(positions))
-        vertices := make([]Vertex_Data__pos3_uv2_col3, num_vertices)
-        for i in 0..<len(vertices) {
-            vertices[i] = Vertex_Data__pos3_uv2_col3{
-                pos = {0, 0, 0},
-                uv =  {0, 0},
-                col = {1, 1, 1},
+            num_vertices := u32(len(positions))
+            vertices := make([]Vertex_Data__pos3_uv2_col3, num_vertices)
+            for i in 0..<len(vertices) {
+                vertices[i] = Vertex_Data__pos3_uv2_col3{
+                    pos = {0, 0, 0},
+                    uv =  {0, 0},
+                    col = {1, 1, 1},
+                }
             }
+            for i in 0..<len(positions) {
+                vertices[i].pos = positions[i]
+            }
+            for i in 0..<len(uvs) {
+                vertices[i].uv = uvs[i]
+            }
+            for i in 0..<len(colors) {
+                vertices[i].col = colors[i]
+            }
+            
+            append(&vertex_data, vertices)
+            append(&index_data, indices[:])
+            append(&index_stride_data, index_size==._16BIT?2:4)
         }
-        for i in 0..<len(positions) {
-            vertices[i].pos = positions[i]
-        }
-        for i in 0..<len(uvs) {
-            vertices[i].uv = uvs[i]
-        }
-        for i in 0..<len(colors) {
-            vertices[i].col = colors[i]
-        }
-        
-        append(&vertex_data, vertices)
-        append(&index_data, indices[:])
-        append(&index_stride_data, index_size==._16BIT?2:4)
     }
 
     mesh_objects := make_dynamic_array([dynamic]GLTF_Mesh_Object_Info)
