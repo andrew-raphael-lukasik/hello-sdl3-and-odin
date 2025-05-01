@@ -5,7 +5,7 @@ import "core:mem/virtual"
 import "base:runtime"
 
 
-alive : byte
+alive: bool
 
 time_start: time.Time
 time_tick: f64 = 0;

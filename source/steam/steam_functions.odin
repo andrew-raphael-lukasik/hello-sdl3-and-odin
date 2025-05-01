@@ -11,7 +11,7 @@ init :: proc ()
 {
     if steam.RestartAppIfNecessary(steam.uAppIdInvalid)
     {
-        steam_init_termination_requested = 1
+        steam_init_termination_requested = true
         log.debug("Launching app through Steam...")
         return
     }
@@ -19,13 +19,13 @@ init :: proc ()
     err_msg: steam.SteamErrMsg
     if init_result := steam.InitFlat(&err_msg); init_result!=.OK
     {
-        initialized = 0
+        initialized = false
 
         log.errorf("steam.InitFlat failed, ESteamAPIInitResult: '{}', message: '{}'", init_result, transmute(cstring)&err_msg[0])
     }
     else
     {
-        initialized = 1
+        initialized = true
 
         steam.Client_SetWarningMessageHook(steam.Client(), steam_debug_text_hook)
         steam.ManualDispatch_Init()
@@ -43,16 +43,16 @@ init :: proc ()
 
 close :: proc ()
 {
-    if initialized==1
+    if initialized
     {
         steam.Shutdown()
-        initialized = 0
+        initialized = false
     }
 }
 
 tick :: proc ()
 {
-    if initialized==1 do run_steam_callbacks()
+    if initialized do run_steam_callbacks()
 }
 
 

@@ -20,7 +20,7 @@ init :: proc () -> runtime.Context
         context.allocator = mem.tracking_allocator((&tracking_allocator))
     }
 
-    alive = 1;
+    alive = true
     time_start = time.now()
     // num_ticks = sdl.GetTicks()
     // win.LoadLibraryW()
@@ -29,9 +29,9 @@ init :: proc () -> runtime.Context
     dir_parent = filepath.dir(dir_current)
 
     steam.init()
-    if steam.steam_init_termination_requested==1
+    if steam.steam_init_termination_requested
     {
-        alive = 0
+        alive = false
     }
 
     arena_buffer = make([]byte, 1024*1024)

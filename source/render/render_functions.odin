@@ -519,21 +519,21 @@ tick :: proc ()
         transform: game.Transform_Component
         mesh: game.Mesh_Component
         for entity in game.entities {
-            transform_found, mesh_found: u8
+            transform_found, mesh_found: bool
             if components, exist := game.components[entity]; exist {
                 for comp in components {
                     if tc, is := comp.(game.Transform_Component); is {
                         transform = tc
-                        transform_found = 1
+                        transform_found = true
                     }
                     else if mc, is := comp.(game.Mesh_Component); is {
                         mesh = mc
-                        mesh_found = 1
+                        mesh_found = true
                     }
-                    if mesh_found==1 && transform_found==1 do break;
+                    if mesh_found && transform_found do break;
                 }
             }
-            if mesh_found==1 && transform_found==1 {
+            if mesh_found && transform_found {
                 draw_calls_array := renderer.draw_calls[mesh.primitive_type]
                 m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
                 m4x4[3].xyz = transform.translation
