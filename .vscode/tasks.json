@@ -20,11 +20,6 @@
                 "kind": "build",
                 "isDefault": false
             }
-        },
-        {
-            "label": "echo_workspaceFolder",
-            "type": "shell",
-            "command": "echo ${workspaceFolder}"
         }
     ]
 }
