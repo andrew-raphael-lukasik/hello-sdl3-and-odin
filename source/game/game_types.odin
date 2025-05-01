@@ -9,9 +9,14 @@ Entity :: struct
     index, version: u32
 }
 
+Transform :: struct
+{
+    matrix3x3: matrix[3,3]f32,
+    translation: [3]f32,
+}
+
 Component :: union
 {
-    Transform_Component,
     Camera_Component,
     Mesh_Component,
     Rotation_Component,
@@ -29,12 +34,6 @@ Mesh_Component :: struct
     vertex_buffer_offset: u32,
     vertex_buffer_type: typeid,
     vertex_buffer_length: u32,
-}
-
-Transform_Component :: struct
-{
-    matrix3x3: matrix[3,3]f32,
-    translation: [3]f32,
 }
 
 Camera_Component :: struct

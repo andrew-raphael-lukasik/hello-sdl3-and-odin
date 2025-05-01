@@ -187,13 +187,9 @@ init :: proc ()
         )
         renderer.index_buffer_offset += meshes.default_quad_indices_num_bytes
 
-        game.create_entity_and_components(
+        entity := game.create_entity_and_components(
             game.Label_Component{
                 value = "rotating quad"
-            },
-            game.Transform_Component{
-                matrix3x3 = linalg.MATRIX3F32_IDENTITY,
-                translation = {7, 4, 0},
             },
             game.Mesh_Component{
                 primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
@@ -212,6 +208,10 @@ init :: proc ()
                 offset = rand.float32() * 10
             },
         )
+        game.transforms[entity] = game.Transform{
+            matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+            translation = {7, 4, 0},
+        }
     }
 
     // create world coords gizmo entity
@@ -238,13 +238,9 @@ init :: proc ()
         )
         renderer.index_buffer_offset += meshes.axis_indices_num_bytes
 
-        game.create_entity_and_components(
+        entity := game.create_entity_and_components(
             game.Label_Component{
                 value = "world coords gizmo"
-            },
-            game.Transform_Component{
-                matrix3x3 = linalg.MATRIX3F32_IDENTITY,
-                translation = {0, 0, 0},
             },
             game.Mesh_Component{
                 primitive_type = meshes.GPU_Primitive_Type.LINELIST,
@@ -258,6 +254,10 @@ init :: proc ()
                 vertex_buffer_length = u32(len(meshes.axis_vertices)),
             },
         )
+        game.transforms[entity] = game.Transform{
+            matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+            translation = {0, 0, 0},
+        }
     }
 
     {
@@ -270,20 +270,20 @@ init :: proc ()
             mesh_component := mesh_components[mesh_object.mesh_index]
             bytes := mem.any_to_bytes(mesh_component)
             comp_hash_value := hash.hash_bytes(hash.Algorithm.Insecure_SHA1, bytes)
-            game.create_entity_and_components(
+            entity := game.create_entity_and_components(
                 game.Label_Component{
                     value = fmt.aprintf("DamagedHelmet.gltf mesh {} {}", mesh_object.mesh_index, comp_hash_value)
                 },
-                game.Transform_Component{
-                    matrix3x3 = matrix[3,3]f32{
-                        xxx[0], yyy[0], zzz[0],
-                        xxx[1], yyy[1], zzz[1],
-                        xxx[2], yyy[2], zzz[2],
-                    },
-                    translation = pos,
-                },
                 mesh_component,
             )
+            game.transforms[entity] = game.Transform{
+                matrix3x3 = matrix[3,3]f32{
+                    xxx[0], yyy[0], zzz[0],
+                    xxx[1], yyy[1], zzz[1],
+                    xxx[2], yyy[2], zzz[2],
+                },
+                translation = pos,
+            }
         }
     }
     {
@@ -295,20 +295,20 @@ init :: proc ()
             ct: [3]f32 = mesh_object.translation
             mesh_component := mesh_components[mesh_object.mesh_index]
             mesh_component_hash := string(hash.hash_bytes(hash.Algorithm.Insecure_SHA1, mem.any_to_bytes(mesh_component), context.temp_allocator))
-            game.create_entity_and_components(
+            entity := game.create_entity_and_components(
                 game.Label_Component{
                     value = fmt.aprintf("other gltf mesh {} {}", mesh_object.mesh_index, mesh_component_hash)
                 },
-                game.Transform_Component{
-                    matrix3x3 = matrix[3,3]f32{
-                        cx[0], cy[0], cz[0],
-                        cx[1], cy[1], cz[1],
-                        cx[2], cy[2], cz[2],
-                    },
-                    translation = ct + {5, 0, 0}
-                },
                 mesh_component,
             )
+            game.transforms[entity] = game.Transform{
+                matrix3x3 = matrix[3,3]f32{
+                    cx[0], cy[0], cz[0],
+                    cx[1], cy[1], cz[1],
+                    cx[2], cy[2], cz[2],
+                },
+                translation = ct + {5, 0, 0}
+            }
         }
     }
 
@@ -533,13 +533,11 @@ tick :: proc ()
     sdl.GetWindowSize(window, &window_size.x, &window_size.y)
     proj_matrix := linalg.matrix4_perspective_f32(70, f32(window_size.x)/f32(window_size.y), 0.001, 1000.0)
     view_matrix := linalg.MATRIX4F32_IDENTITY
-    for comp in game.components[game.main_camera] {
-        if transform, is := comp.(game.Transform_Component); is {
-            m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
-            m4x4[3].xyz = transform.translation
-            view_matrix = linalg.inverse(m4x4)
-            break
-        }
+    main_camera_transform := game.transforms[game.main_camera]
+    {
+        m4x4 := linalg.matrix4_from_matrix3_f32(main_camera_transform.matrix3x3)
+        m4x4[3].xyz = main_camera_transform.translation
+        view_matrix = linalg.inverse(m4x4)
     }
 
     // rebuild list of draw calls
@@ -547,36 +545,25 @@ tick :: proc ()
         clear_dynamic_array(&renderer.draw_calls[key])
     }
     {
-        transform: game.Transform_Component
-        mesh: game.Mesh_Component
         for entity in game.entities {
-            transform_found, mesh_found: bool
             if components, exist := game.components[entity]; exist {
                 for comp in components {
-                    if tc, is := comp.(game.Transform_Component); is {
-                        transform = tc
-                        transform_found = true
+                    if mc, is := comp.(game.Mesh_Component); is {
+                        transform := game.transforms[entity]
+                        draw_calls_array := renderer.draw_calls[mc.primitive_type]
+                        m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
+                        m4x4[3].xyz = transform.translation
+                        append(&draw_calls_array, Draw_Call_Data{
+                            model_matrix = m4x4,
+                            index_buffer_offset = mc.index_buffer_offset,
+                            index_buffer_stride = mc.index_buffer_stride,
+                            index_buffer_length = mc.index_buffer_length,
+                            vertex_buffer_offset = mc.vertex_buffer_offset,
+                        })
+                        renderer.draw_calls[mc.primitive_type] = draw_calls_array
+                        assert(len(renderer.draw_calls[mc.primitive_type])!=0)
                     }
-                    else if mc, is := comp.(game.Mesh_Component); is {
-                        mesh = mc
-                        mesh_found = true
-                    }
-                    if mesh_found && transform_found do break;
                 }
-            }
-            if mesh_found && transform_found {
-                draw_calls_array := renderer.draw_calls[mesh.primitive_type]
-                m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
-                m4x4[3].xyz = transform.translation
-                append(&draw_calls_array, Draw_Call_Data{
-                    model_matrix = m4x4,
-                    index_buffer_offset = mesh.index_buffer_offset,
-                    index_buffer_stride = mesh.index_buffer_stride,
-                    index_buffer_length = mesh.index_buffer_length,
-                    vertex_buffer_offset = mesh.vertex_buffer_offset,
-                })
-                renderer.draw_calls[mesh.primitive_type] = draw_calls_array
-                assert(len(renderer.draw_calls[mesh.primitive_type])!=0)
             }
         }
     }

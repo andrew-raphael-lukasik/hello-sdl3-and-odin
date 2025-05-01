@@ -11,12 +11,12 @@ init :: proc ()
 {
     // create main camera entity
     main_camera = create_entity_and_components(
-        Transform_Component{
-            matrix3x3 = linalg.MATRIX3F32_IDENTITY,
-            translation = {0, 0, 10},
-        },
         Camera_Component{},
     )
+    transforms[main_camera] = Transform{
+        matrix3x3 = linalg.MATRIX3F32_IDENTITY,
+        translation = {0, 0, 10},
+    }
 }
 
 close :: proc ()
@@ -32,77 +32,52 @@ close :: proc ()
 tick :: proc ()
 {
     // update rotation component entities:
-    {
-        rotate: Rotation_Component
-        rotate_index := -1
-        transform: Transform_Component
-        transform_index := -1
-        for entity in entities {
-            if comps, exist := components[entity]; exist {
-                comp_index := 0
-                for comp in comps {
-                    if tc, is := comp.(Transform_Component); is {
-                        transform = tc
-                        transform_index = comp_index
-                        continue
-                    }
-                    else if rc, is := comp.(Rotation_Component); is {
-                        rotate = rc
-                        rotate_index = comp_index
-                        continue
+    for entity in entities {
+        if comps, exist := components[entity]; exist {
+            for comp in comps {
+                if rc, is := comp.(Rotation_Component); is {
+                    transforms[entity] = Transform{
+                        matrix3x3 = linalg.matrix3_rotate_f32(f32(linalg.TAU) * (f32(app.time_tick) + rc.offset) * rc.speed, rc.axis),
+                        translation = transforms[entity].translation,
                     }
                 }
-                if rotate_index!=-1 && transform_index!=-1 {
-                    comps[transform_index] = Transform_Component{
-                        matrix3x3 = linalg.matrix3_rotate_f32(f32(linalg.TAU) * (f32(app.time_tick) + rotate.offset) * rotate.speed, rotate.axis),
-                        translation = transform.translation,
-                    }
-                    rotate_index = -1
-                    transform_index = -1
-                }
-                comp_index += 1
             }
         }
     }
 
     // handle camera movement & rotation:
     if comps, exist := components[main_camera]; exist {
-        comp_index := 0
-        for comp in comps {
-            if transform, is := comp.(Transform_Component); is {
-                dt := f32(app.time_delta)
-                xxx := transform.matrix3x3[0]
-                yyy := transform.matrix3x3[1]
-                zzz := transform.matrix3x3[2]
-                pos := transform.translation
-                
-                // mouse look
-                if input.action_mouse_move!={0, 0} {
-                    rot := linalg.quaternion_angle_axis_f32(input.action_mouse_move.x * camera_look_sensitivity.x, {0, -1, 0})
-                    dot_zzz_010 := linalg.dot(zzz, [3]f32{0, 1, 0})
-                    if (input.action_mouse_move.y<0 && dot_zzz_010>-0.9) || (input.action_mouse_move.y>0 && dot_zzz_010<0.9) {
-                        rot *= linalg.quaternion_angle_axis_f32(input.action_mouse_move.y * camera_look_sensitivity.y, -xxx)
-                    }
-                    xxx = linalg.quaternion_mul_vector3(rot, linalg.normalize(xxx))
-                    yyy = linalg.quaternion_mul_vector3(rot, linalg.normalize(yyy))
-                    zzz = linalg.cross(xxx, yyy)
-                }
-                
-                // move
-                pos += (xxx * input.action_move.x + -zzz * input.action_move.y + yyy * (input.action_jump - input.action_crouch)) * dt * 10
-                
-                // write back
-                comps[comp_index] = Transform_Component{
-                    matrix3x3 = matrix[3,3]f32{
-                        xxx[0], yyy[0], zzz[0],
-                        xxx[1], yyy[1], zzz[1],
-                        xxx[2], yyy[2], zzz[2],
-                    },
-                    translation = pos,
-                }
+        dt := f32(app.time_delta)
+        transform := transforms[main_camera]
+        xxx := transform.matrix3x3[0]
+        yyy := transform.matrix3x3[1]
+        zzz := transform.matrix3x3[2]
+        pos := transform.translation
+        
+        // mouse look
+        if input.action_mouse_move!={0, 0} {
+            rot := linalg.quaternion_angle_axis_f32(input.action_mouse_move.x * camera_look_sensitivity.x, {0, -1, 0})
+            dot_zzz_010 := linalg.dot(zzz, [3]f32{0, 1, 0})
+            if (input.action_mouse_move.y<0 && dot_zzz_010>-0.9) || (input.action_mouse_move.y>0 && dot_zzz_010<0.9) {
+                rot *= linalg.quaternion_angle_axis_f32(input.action_mouse_move.y * camera_look_sensitivity.y, -xxx)
             }
+            xxx = linalg.quaternion_mul_vector3(rot, linalg.normalize(xxx))
+            yyy = linalg.quaternion_mul_vector3(rot, linalg.normalize(yyy))
+            zzz = linalg.cross(xxx, yyy)
         }
-        comp_index += 1
+        
+        // move
+        pos += (xxx * input.action_move.x + -zzz * input.action_move.y + yyy * (input.action_jump - input.action_crouch)) * dt * 10
+        
+        // write back
+        transforms[main_camera] = Transform{
+            matrix3x3 = matrix[3,3]f32{
+                xxx[0], yyy[0], zzz[0],
+                xxx[1], yyy[1], zzz[1],
+                xxx[2], yyy[2], zzz[2],
+            },
+            translation = pos,
+        }
     }
 }
 
