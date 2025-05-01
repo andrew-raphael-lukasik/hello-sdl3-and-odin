@@ -27,12 +27,12 @@ tick :: proc ()
         keycode := ev.key.scancode
         #partial switch ev.type {
             case .QUIT:
-                app.alive = 0
+                app.alive = false
             
             // KEYBOARD
             case .KEY_DOWN:
                 key_down[ev.key.scancode] = true
-                if ev.key.scancode==.ESCAPE do app.alive = 0
+                if ev.key.scancode==.ESCAPE do app.alive = false
             case .KEY_UP:
                 key_down[ev.key.scancode] = false
                 key_up[ev.key.scancode] = true

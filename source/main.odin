@@ -19,7 +19,7 @@ main :: proc ()
     input.init()
     render.init()
 
-    for app.alive!=0
+    for app.alive
     {
         free_all(context.temp_allocator)
         app.tick()
