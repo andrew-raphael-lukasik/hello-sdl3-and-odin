@@ -185,4 +185,3 @@ bytes_to_u32_slice :: proc(bytes: []byte, little_endian: bool = true, allocator 
     }
     return result;
 }
-

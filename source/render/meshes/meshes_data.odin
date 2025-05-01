@@ -10,7 +10,7 @@ default_quad_vertices : []Vertex_Data__pos3_uv2_col3 = {
     {pos = {0.5, -0.5, 0},     uv = {1, 0},    col = {1, 1, 1}},//BR
 }
 default_quad_vertices_num_bytes := app.num_bytes_of_u32(&default_quad_vertices)
-default_quad_indices := []u16 { 0, 1, 2,   0, 2, 3, }
+default_quad_indices := []u16 {0, 1, 2, 0, 2, 3}
 default_quad_indices_num_bytes := app.num_bytes_of_u32(&default_quad_indices)
 
 axis_vertices : []Vertex_Data__pos3_col3 = {
