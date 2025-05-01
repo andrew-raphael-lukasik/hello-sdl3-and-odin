@@ -202,9 +202,8 @@ init :: proc ()
                 index_buffer_length = u32(len(meshes.default_quad_indices)),
                 
                 vertex_buffer_offset = vertex_buffer_pos,
-                vertex_buffer_stride = size_of(meshes.default_quad_vertices[0]),
-                vertex_buffer_length = u32(len(meshes.default_quad_vertices)),
                 vertex_buffer_type = type_of(meshes.default_quad_vertices[0]),
+                vertex_buffer_length = u32(len(meshes.default_quad_vertices)),
             },
             game.Rotation_Component{
                 speed = 0.23,
@@ -254,9 +253,8 @@ init :: proc ()
                 index_buffer_length = u32(len(meshes.axis_indices)),
                 
                 vertex_buffer_offset = vertex_buffer_pos,
-                vertex_buffer_stride = size_of(meshes.axis_vertices[0]),
-                vertex_buffer_length = u32(len(meshes.axis_vertices)),
                 vertex_buffer_type = type_of(meshes.axis_vertices[0]),
+                vertex_buffer_length = u32(len(meshes.axis_vertices)),
             },
         )
     }
@@ -755,9 +753,8 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
             index_buffer_length = num_indices,
             
             vertex_buffer_offset = mesh_vertex_buffer_pos,
-            vertex_buffer_length = u32(len(vertices)),
-            vertex_buffer_stride = size_of(vertices[0]),
             vertex_buffer_type = type_of(vertices[0]),
+            vertex_buffer_length = u32(len(vertices)),
         }
     }
 

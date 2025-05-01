@@ -27,9 +27,8 @@ Mesh_Component :: struct
     index_buffer_length: u32,
     
     vertex_buffer_offset: u32,
-    vertex_buffer_stride: u8,
-    vertex_buffer_length: u32,
     vertex_buffer_type: typeid,
+    vertex_buffer_length: u32,
 }
 
 Transform_Component :: struct
