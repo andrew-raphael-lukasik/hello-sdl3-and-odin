@@ -11,6 +11,7 @@ import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import "core:log"
+import "core:crypto/hash"
 import "core:math/rand"
 import "base:runtime"
 import "../app"
@@ -259,26 +260,56 @@ init :: proc ()
         )
     }
 
-    mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/default_cube.gltf"))
-    for mesh_object in mesh_objects {
-        xxx := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
-        yyy := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
-        zzz := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
-        pos := mesh_object.translation
-        game.create_entity_and_components(
-            game.Label_Component{
-                value = "mesh"
-            },
-            game.Transform_Component{
-                matrix3x3 = matrix[3,3]f32{
-                    xxx[0], yyy[0], zzz[0],
-                    xxx[1], yyy[1], zzz[1],
-                    xxx[2], yyy[2], zzz[2],
+    {
+        mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/DamagedHelmet.gltf"))
+        for mesh_object in mesh_objects {
+            xxx := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
+            yyy := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
+            zzz := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
+            pos := mesh_object.translation
+            mesh_component := mesh_components[mesh_object.mesh_index]
+            bytes := mem.any_to_bytes(mesh_component)
+            comp_hash_value := hash.hash_bytes(hash.Algorithm.Insecure_SHA1, bytes)
+            game.create_entity_and_components(
+                game.Label_Component{
+                    value = fmt.aprintf("DamagedHelmet.gltf mesh {} {}", mesh_object.mesh_index, comp_hash_value)
                 },
-                translation = pos,
-            },
-            mesh_components[mesh_object.mesh_index],
-        )
+                game.Transform_Component{
+                    matrix3x3 = matrix[3,3]f32{
+                        xxx[0], yyy[0], zzz[0],
+                        xxx[1], yyy[1], zzz[1],
+                        xxx[2], yyy[2], zzz[2],
+                    },
+                    translation = pos,
+                },
+                mesh_component,
+            )
+        }
+    }
+    {
+        mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/de_chateau.gltf"))
+        for mesh_object in mesh_objects {
+            cx: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
+            cy: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
+            cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
+            ct: [3]f32 = mesh_object.translation
+            mesh_component := mesh_components[mesh_object.mesh_index]
+            mesh_component_hash := string(hash.hash_bytes(hash.Algorithm.Insecure_SHA1, mem.any_to_bytes(mesh_component), context.temp_allocator))
+            game.create_entity_and_components(
+                game.Label_Component{
+                    value = fmt.aprintf("other gltf mesh {} {}", mesh_object.mesh_index, mesh_component_hash)
+                },
+                game.Transform_Component{
+                    matrix3x3 = matrix[3,3]f32{
+                        cx[0], cy[0], cz[0],
+                        cx[1], cy[1], cz[1],
+                        cx[2], cy[2], cz[2],
+                    },
+                    translation = ct + {5, 0, 0}
+                },
+                mesh_component,
+            )
+        }
     }
 
     vertex_transfer_buffer_size := renderer.vertex_transfer_buffer_offset
