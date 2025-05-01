@@ -139,3 +139,50 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
 
     return vertex_data[:], index_data[:], index_stride_data[:], mesh_objects[:]
 }
+
+bytes_to_u16_slice :: proc(bytes: []byte, little_endian: bool = true, allocator := context.allocator) -> []u16 {
+    stride := size_of(u16)
+    count := len(bytes) / stride;
+    result := make([]u16, count, allocator);
+    if little_endian {
+        for i in 0..<count {
+            b0 := bytes[i*stride];
+            b1 := bytes[i*stride + 1];
+            result[i] = u16(b0) | (u16(b1) << 8);
+        }
+    }
+    else {
+        for i in 0..<count {
+            b0 := bytes[i*stride];
+            b1 := bytes[i*stride + 1];
+            result[i] = (u16(b0) << 8) | u16(b1);
+        }
+    }
+    return result;
+}
+
+bytes_to_u32_slice :: proc(bytes: []byte, little_endian: bool = true, allocator := context.allocator) -> []u32 {
+    stride := size_of(u32)
+    count := len(bytes) / stride;
+    result := make([]u32, count, allocator);
+    if little_endian {
+        for i in 0..<count {
+            b0 := bytes[i*stride];
+            b1 := bytes[i*stride + 1];
+            b2 := bytes[i*stride + 2];
+            b3 := bytes[i*stride + 3];
+            result[i] = u32(b0) | (u32(b1) << 8) | (u32(b2) << 16) | (u32(b3) << 24);
+        }
+    }
+    else {
+        for i in 0..<count {
+            b0 := bytes[i*2];
+            b1 := bytes[i*2 + 1];
+            b2 := bytes[i*2 + 2];
+            b3 := bytes[i*2 + 3];
+            result[i] = (u32(b0) << 24) | (u32(b1) << 16) | (u32(b2) << 8) | u32(b3);
+        }
+    }
+    return result;
+}
+
