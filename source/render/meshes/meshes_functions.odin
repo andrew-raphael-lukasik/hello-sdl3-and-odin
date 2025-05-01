@@ -101,20 +101,20 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
 
         num_vertices := u32(len(positions))
         vertices := make([]Vertex_Data__pos3_uv2_col3, num_vertices)
-        for i:u32 = 0 ; i<u32(len(vertices)) ; i+=1 {
+        for i in 0..<len(vertices) {
             vertices[i] = Vertex_Data__pos3_uv2_col3{
                 pos = {0, 0, 0},
                 uv =  {0, 0},
                 col = {1, 1, 1},
             }
         }
-        for i:u32 = 0 ; i<u32(len(positions)) ; i+=1 {
+        for i in 0..<len(positions) {
             vertices[i].pos = positions[i]
         }
-        for i:u32 = 0 ; i<u32(len(uvs)) ; i+=1 {
+        for i in 0..<len(uvs) {
             vertices[i].uv = uvs[i]
         }
-        for i:u32 = 0 ; i<u32(len(colors)) ; i+=1 {
+        for i in 0..<len(colors) {
             vertices[i].col = colors[i]
         }
         

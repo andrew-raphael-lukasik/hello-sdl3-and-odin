@@ -133,37 +133,37 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             switch accessor.component_type {
             case .Unsigned_Byte:
                 result := make([]u8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = v[start_byte + i*stride]
                 }
                 return result
             case .Byte:
                 result := make([]i8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = transmute(i8)v[start_byte + i*stride]
                 }
                 return result
             case .Short:
                 result := make([]i16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = cast(i16)v[start_byte + i*stride]
                 }
                 return result
             case .Unsigned_Short:
                 result := make([]u16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = cast(u16)v[start_byte + i*stride]
                 }
                 return result
             case .Unsigned_Int:
                 result := make([]u32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = cast(u32)v[start_byte + i*stride]
                 }
                 return result
             case .Float:
                 result := make([]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     result[i] = cast(f32)v[start_byte + i*stride]
                 }
                 return result
@@ -173,42 +173,42 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             switch accessor.component_type {
             case .Unsigned_Byte:
                 result := make([][2]u8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]u8)ptr)^
                 }
                 return result
             case .Byte:
                 result := make([][2]i8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]i8)ptr)^
                 }
                 return result
             case .Short:
                 result := make([][2]i16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]i16)ptr)^
                 }
                 return result
             case .Unsigned_Short:
                 result := make([][2]u16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]u16)ptr)^
                 }
                 return result
             case .Unsigned_Int:
                 result := make([][2]u32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]u32)ptr)^
                 }
                 return result
             case .Float:
                 result := make([][2]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[2]f32)ptr)^
                 }
@@ -220,42 +220,42 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             switch accessor.component_type {
             case .Unsigned_Byte:
                 result := make([][3]u8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]u8)ptr)^
                 }
                 return result
             case .Byte:
                 result := make([][3]i8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]i8)ptr)^
                 }
                 return result
             case .Short:
                 result := make([][3]i16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]i16)ptr)^
                 }
                 return result
             case .Unsigned_Short:
                 result := make([][3]u16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]u16)ptr)^
                 }
                 return result
             case .Unsigned_Int:
                 result := make([][3]u32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]u32)ptr)^
                 }
                 return result
             case .Float:
                 result := make([][3]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[3]f32)ptr)^
                 }
@@ -266,42 +266,42 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             switch accessor.component_type {
             case .Unsigned_Byte:
                 result := make([][4]u8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]u8)ptr)^
                 }
                 return result
             case .Byte:
                 result := make([][4]i8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]i8)ptr)^
                 }
                 return result
             case .Short:
                 result := make([][4]i16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]i16)ptr)^
                 }
                 return result
             case .Unsigned_Short:
                 result := make([][4]u16, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]u16)ptr)^
                 }
                 return result
             case .Unsigned_Int:
                 result := make([][4]u32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]u32)ptr)^
                 }
                 return result
             case .Float:
                 result := make([][4]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^[4]f32)ptr)^
                 }
@@ -312,7 +312,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             #partial switch accessor.component_type {
             case .Unsigned_Byte:
                 result := make([]matrix[2, 2]u8, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^matrix[2, 2]u8)ptr)^
                 }
@@ -320,7 +320,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             // ... Podobnie dla innych typów komponentów ...
             case .Float:
                 result := make([]matrix[2, 2]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^matrix[2, 2]f32)ptr)^
                 }
@@ -332,7 +332,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             // ... Implementacja podobna do Matrix2 ...
             case .Float:
                 result := make([]matrix[3, 3]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^matrix[3, 3]f32)ptr)^
                 }
@@ -344,7 +344,7 @@ buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
             // ... Implementacja podobna do Matrix2 ...
             case .Float:
                 result := make([]matrix[4, 4]f32, count)
-                for i:u32 = 0; i < count; i += 1 {
+                for i in 0..<count {
                     ptr := rawptr(&v[start_byte + i*stride])
                     result[i] = (cast(^matrix[4, 4]f32)ptr)^
                 }

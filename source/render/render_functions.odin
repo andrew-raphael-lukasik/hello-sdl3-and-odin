@@ -715,7 +715,7 @@ create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col
     num_items := len(vertex_data)
     mesh_components := make([]game.Mesh_Component, num_items, allocator)
     
-    for i:=0 ; i<num_items ; i+=1 {
+    for i in 0..<num_items {
         indices := index_data[i]
         index_element_stride := u32(index_stride[i])
         vertices := vertex_data[i]

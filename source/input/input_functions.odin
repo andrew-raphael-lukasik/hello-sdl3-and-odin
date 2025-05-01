@@ -62,7 +62,7 @@ tick :: proc ()
             if key_down[scancode] do log.debugf("input.key_down[{}]", scancode)
             if key_up[scancode] do log.debugf("input.key_up[{}]", scancode)
         }
-        for i:u8=0 ; i<255 ; i+=1 {
+        for i in 0..<255 {
             if mouse_down[i] do log.debugf("input.mouse_down[{}]", i)
             if mouse_up[i] do log.debugf("input.mouse_up[{}]", i)
         }
