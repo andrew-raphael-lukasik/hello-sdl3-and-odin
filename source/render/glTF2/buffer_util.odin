@@ -78,278 +78,142 @@ Buffer_Slice :: union {
 
 buffer_slice :: proc(data: ^Data, accessor_index: Integer) -> Buffer_Slice {
     accessor := data.accessors[accessor_index]
+    assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
+
+    buffer_view := data.buffer_views[accessor.buffer_view.?]
 
     if _, ok := accessor.sparse.?; ok {
         assert(false, "Sparse not supported")
         return nil
     }
 
-    assert(accessor.buffer_view != nil, "buf_iter_make: selected accessor doesn't have buffer_view")
-    buffer_view := data.buffer_views[accessor.buffer_view.?]
+    if _, ok := buffer_view.byte_stride.?; ok {
+        assert(false, "Cannot use a stride")
+        return nil
+    }
 
-    switch v in data.buffers[buffer_view.buffer].uri {
+    start_byte := accessor.byte_offset + buffer_view.byte_offset
+    uri := data.buffers[buffer_view.buffer].uri
+
+    switch v in uri {
     case string:
         assert(false, "URI is string")
         return nil
     case []byte:
-        count := accessor.count
-        component_size: u32 = 0
-        switch accessor.component_type {
-        case .Unsigned_Byte, .Byte:
-            component_size = 1
-        case .Short, .Unsigned_Short:
-            component_size = 2
-        case .Unsigned_Int, .Float:
-            component_size = 4
-        }
-
-        start_byte := accessor.byte_offset + buffer_view.byte_offset
-        stride, is_stride := buffer_view.byte_stride.?
-        if !is_stride {
-            switch accessor.type {
-            case .Scalar:
-                stride = component_size
-            case .Vector2:
-                stride = 2 * component_size
-            case .Vector3:
-                stride = 3 * component_size
-            case .Vector4:
-                stride = 4 * component_size
-            case .Matrix2:
-                stride = 4 * component_size
-            case .Matrix3:
-                stride = 9 * component_size
-            case .Matrix4:
-                stride = 16 * component_size
-            }
-            if stride == 0 {
-                assert(false, "Could not determine element stride")
-                return nil
-            }
-        }
-
+        start_ptr: rawptr = &v[start_byte]
         switch accessor.type {
         case .Scalar:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                result := make([]u8, count)
-                for i in 0..<count {
-                    result[i] = v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]u8)start_ptr)[:accessor.count]
             case .Byte:
-                result := make([]i8, count)
-                for i in 0..<count {
-                    result[i] = transmute(i8)v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]i8)start_ptr)[:accessor.count]
             case .Short:
-                result := make([]i16, count)
-                for i in 0..<count {
-                    result[i] = cast(i16)v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]i16)start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                result := make([]u16, count)
-                for i in 0..<count {
-                    result[i] = cast(u16)v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]u16)start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                result := make([]u32, count)
-                for i in 0..<count {
-                    result[i] = cast(u32)v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([]f32, count)
-                for i in 0..<count {
-                    result[i] = cast(f32)v[start_byte + i*stride]
-                }
-                return result
+                return (transmute([^]f32)start_ptr)[:accessor.count]
             }
 
         case .Vector2:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                result := make([][2]u8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]u8)ptr)^
-                }
-                return result
+                return (transmute([^][2]u8)start_ptr)[:accessor.count]
             case .Byte:
-                result := make([][2]i8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]i8)ptr)^
-                }
-                return result
+                return (transmute([^][2]i8)start_ptr)[:accessor.count]
             case .Short:
-                result := make([][2]i16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]i16)ptr)^
-                }
-                return result
+                return (transmute([^][2]i16)start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                result := make([][2]u16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]u16)ptr)^
-                }
-                return result
+                return (transmute([^][2]u16)start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                result := make([][2]u32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]u32)ptr)^
-                }
-                return result
+                return (transmute([^][2]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([][2]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[2]f32)ptr)^
-                }
-                return result
+                return (transmute([^][2]f32)start_ptr)[:accessor.count]
             }
 
-        // ... Podobnie dla Vector3, Vector4, Matrix2, Matrix3, Matrix4 ...
         case .Vector3:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                result := make([][3]u8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]u8)ptr)^
-                }
-                return result
+                return (transmute([^][3]u8)start_ptr)[:accessor.count]
             case .Byte:
-                result := make([][3]i8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]i8)ptr)^
-                }
-                return result
+                return (transmute([^][3]i8)start_ptr)[:accessor.count]
             case .Short:
-                result := make([][3]i16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]i16)ptr)^
-                }
-                return result
+                return (transmute([^][3]i16)start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                result := make([][3]u16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]u16)ptr)^
-                }
-                return result
+                return (transmute([^][3]u16)start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                result := make([][3]u32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]u32)ptr)^
-                }
-                return result
+                return (transmute([^][3]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([][3]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[3]f32)ptr)^
-                }
-                return result
+                return (transmute([^][3]f32)start_ptr)[:accessor.count]
             }
 
         case .Vector4:
             switch accessor.component_type {
             case .Unsigned_Byte:
-                result := make([][4]u8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]u8)ptr)^
-                }
-                return result
+                return (transmute([^][4]u8)start_ptr)[:accessor.count]
             case .Byte:
-                result := make([][4]i8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]i8)ptr)^
-                }
-                return result
+                return (transmute([^][4]i8)start_ptr)[:accessor.count]
             case .Short:
-                result := make([][4]i16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]i16)ptr)^
-                }
-                return result
+                return (transmute([^][4]i16)start_ptr)[:accessor.count]
             case .Unsigned_Short:
-                result := make([][4]u16, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]u16)ptr)^
-                }
-                return result
+                return (transmute([^][4]u16)start_ptr)[:accessor.count]
             case .Unsigned_Int:
-                result := make([][4]u32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]u32)ptr)^
-                }
-                return result
+                return (transmute([^][4]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([][4]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^[4]f32)ptr)^
-                }
-                return result
+                return (transmute([^][4]f32)start_ptr)[:accessor.count]
             }
 
         case .Matrix2:
-            #partial switch accessor.component_type {
+            switch accessor.component_type {
             case .Unsigned_Byte:
-                result := make([]matrix[2, 2]u8, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^matrix[2, 2]u8)ptr)^
-                }
-                return result
-            // ... Podobnie dla innych typów komponentów ...
+                return (transmute([^]matrix[2, 2]u8)start_ptr)[:accessor.count]
+            case .Byte:
+                return (transmute([^]matrix[2, 2]i8)start_ptr)[:accessor.count]
+            case .Short:
+                return (transmute([^]matrix[2, 2]i16)start_ptr)[:accessor.count]
+            case .Unsigned_Short:
+                return (transmute([^]matrix[2, 2]u16)start_ptr)[:accessor.count]
+            case .Unsigned_Int:
+                return (transmute([^]matrix[2, 2]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([]matrix[2, 2]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^matrix[2, 2]f32)ptr)^
-                }
-                return result
+                return (transmute([^]matrix[2, 2]f32)start_ptr)[:accessor.count]
             }
 
         case .Matrix3:
-            #partial switch accessor.component_type {
-            // ... Implementacja podobna do Matrix2 ...
+            switch accessor.component_type {
+            case .Unsigned_Byte:
+                return (transmute([^]matrix[3, 3]u8)start_ptr)[:accessor.count]
+            case .Byte:
+                return (transmute([^]matrix[3, 3]i8)start_ptr)[:accessor.count]
+            case .Short:
+                return (transmute([^]matrix[3, 3]i16)start_ptr)[:accessor.count]
+            case .Unsigned_Short:
+                return (transmute([^]matrix[3, 3]u16)start_ptr)[:accessor.count]
+            case .Unsigned_Int:
+                return (transmute([^]matrix[3, 3]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([]matrix[3, 3]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^matrix[3, 3]f32)ptr)^
-                }
-                return result
+                return (transmute([^]matrix[3, 3]f32)start_ptr)[:accessor.count]
             }
 
         case .Matrix4:
-            #partial switch accessor.component_type {
-            // ... Implementacja podobna do Matrix2 ...
+            switch accessor.component_type {
+            case .Unsigned_Byte:
+                return (transmute([^]matrix[4, 4]u8)start_ptr)[:accessor.count]
+            case .Byte:
+                return (transmute([^]matrix[4, 4]i8)start_ptr)[:accessor.count]
+            case .Short:
+                return (transmute([^]matrix[4, 4]i16)start_ptr)[:accessor.count]
+            case .Unsigned_Short:
+                return (transmute([^]matrix[4, 4]u16)start_ptr)[:accessor.count]
+            case .Unsigned_Int:
+                return (transmute([^]matrix[4, 4]u32)start_ptr)[:accessor.count]
             case .Float:
-                result := make([]matrix[4, 4]f32, count)
-                for i in 0..<count {
-                    ptr := rawptr(&v[start_byte + i*stride])
-                    result[i] = (cast(^matrix[4, 4]f32)ptr)^
-                }
-                return result
+                return (transmute([^]matrix[4, 4]f32)start_ptr)[:accessor.count]
             }
+
         }
     }
 
