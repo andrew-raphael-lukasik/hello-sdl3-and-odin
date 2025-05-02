@@ -52,30 +52,30 @@ init :: proc ()
 
     is_mouse_captured := sdl.CaptureMouse(true)
 
-    renderer.vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+    state.vertex_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.VERTEX },
         size = 128_000 * size_of(meshes.Vertex_Data__pos3_uv2_col3),
     })
-    renderer.vertex_buffer_offset = 0
-    renderer.index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
+    state.vertex_buffer_offset = 0
+    state.index_buffer = sdl.CreateGPUBuffer(gpu, sdl.GPUBufferCreateInfo{
         usage = { sdl.GPUBufferUsageFlag.INDEX },
         size =  128_000 * size_of(2),
     })
-    renderer.index_buffer_offset = 0
-    renderer.vertex_transfer_buffer_offset = 0
-    renderer.texture_transfer_buffer_offset = 0
-    renderer.depth_texture_format = sdl.GPUTextureSupportsFormat(gpu, sdl.GPUTextureFormat.D24_UNORM, sdl.GPUTextureType.D2, {sdl.GPUTextureUsageFlag.DEPTH_STENCIL_TARGET}) ? sdl.GPUTextureFormat.D24_UNORM : sdl.GPUTextureFormat.D16_UNORM
-    renderer.depth_texture = sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
+    state.index_buffer_offset = 0
+    state.vertex_transfer_buffer_offset = 0
+    state.texture_transfer_buffer_offset = 0
+    state.depth_texture_format = sdl.GPUTextureSupportsFormat(gpu, sdl.GPUTextureFormat.D24_UNORM, sdl.GPUTextureType.D2, {sdl.GPUTextureUsageFlag.DEPTH_STENCIL_TARGET}) ? sdl.GPUTextureFormat.D24_UNORM : sdl.GPUTextureFormat.D16_UNORM
+    state.depth_texture = sdl.CreateGPUTexture(gpu, sdl.GPUTextureCreateInfo{
         type = sdl.GPUTextureType.D2,
-        format = renderer.depth_texture_format,
+        format = state.depth_texture_format,
         usage = { sdl.GPUTextureUsageFlag.DEPTH_STENCIL_TARGET },
         width = u32(window_size.x),
         height = u32(window_size.y),
         layer_count_or_depth = 1,
         num_levels = 1,
     })
-    renderer.depth_stencil_target_info = sdl.GPUDepthStencilTargetInfo{
-        texture = renderer.depth_texture,
+    state.depth_stencil_target_info = sdl.GPUDepthStencilTargetInfo{
+        texture = state.depth_texture,
         clear_depth = 1,
         load_op = sdl.GPULoadOp.CLEAR,
         store_op = sdl.GPUStoreOp.DONT_CARE,
@@ -84,19 +84,19 @@ init :: proc ()
         // cycle:            bool,         /**< true cycles the texture if the texture is bound and any load ops are not LOAD */
         // clear_stencil:    Uint8,        /**< The value to clear the stencil component to at the beginning of the render pass. Ignored if GPU_LOADOP_CLEAR is not used. */
     }
-    renderer.draw_calls = make_map(map[meshes.GPU_Primitive_Type][dynamic]Draw_Call_Data)
+    state.draw_calls = make_map(map[meshes.GPU_Primitive_Type][dynamic]Draw_Call_Data)
     for t in meshes.GPU_Primitive_Type {
-        // renderer.draw_calls[t] = make_dynamic_array([dynamic]Draw_Call_Data)
+        // state.draw_calls[t] = make_dynamic_array([dynamic]Draw_Call_Data)
         // array, err := make([dynamic]Draw_Call_Data)
         // _test := make_dynamic_array_len_cap([dynamic]byte, 0, 16)
         array := make_dynamic_array_len_cap([dynamic]Draw_Call_Data, 0, 16)
-        renderer.draw_calls[t] = array
+        state.draw_calls[t] = array
         // assert(err==nil)
         assert(array!=nil)
-        assert(renderer.draw_calls[t]!=nil)
+        assert(state.draw_calls[t]!=nil)
     }
     for t in meshes.GPU_Primitive_Type {
-        assert(renderer.draw_calls[t]!=nil)
+        assert(state.draw_calls[t]!=nil)
     }
 
     {
@@ -164,27 +164,27 @@ init :: proc ()
 
     // create quad entity
     {
-        vertex_buffer_pos := renderer.vertex_buffer_offset
+        vertex_buffer_pos := state.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = meshes.default_quad_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.vertex_buffer,
+                buffer = state.vertex_buffer,
                 offset = vertex_buffer_pos,
                 size = meshes.default_quad_vertices_num_bytes,
             }
         )
-        renderer.vertex_buffer_offset += meshes.default_quad_vertices_num_bytes
+        state.vertex_buffer_offset += meshes.default_quad_vertices_num_bytes
     
-        index_buffer_pos := renderer.index_buffer_offset
+        index_buffer_pos := state.index_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = meshes.default_quad_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.index_buffer,
+                buffer = state.index_buffer,
                 offset = index_buffer_pos,
                 size = meshes.default_quad_indices_num_bytes,
             }
         )
-        renderer.index_buffer_offset += meshes.default_quad_indices_num_bytes
+        state.index_buffer_offset += meshes.default_quad_indices_num_bytes
 
         entity := game.create_entity_and_components(
             game.Label_Component{
@@ -215,27 +215,27 @@ init :: proc ()
 
     // create world coords gizmo entity
     {
-        vertex_buffer_pos := renderer.vertex_buffer_offset
+        vertex_buffer_pos := state.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = meshes.axis_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.vertex_buffer,
+                buffer = state.vertex_buffer,
                 offset = vertex_buffer_pos,
                 size = meshes.axis_vertices_num_bytes,
             }
         )
-        renderer.vertex_buffer_offset += meshes.axis_vertices_num_bytes
+        state.vertex_buffer_offset += meshes.axis_vertices_num_bytes
     
-        index_buffer_pos := renderer.index_buffer_offset
+        index_buffer_pos := state.index_buffer_offset
         schedule_upload_to_gpu_buffer(
             source = meshes.axis_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.index_buffer,
+                buffer = state.index_buffer,
                 offset = index_buffer_pos,
                 size = meshes.axis_indices_num_bytes,
             }
         )
-        renderer.index_buffer_offset += meshes.axis_indices_num_bytes
+        state.index_buffer_offset += meshes.axis_indices_num_bytes
 
         entity := game.create_entity_and_components(
             game.Label_Component{
@@ -316,7 +316,7 @@ init :: proc ()
         }
     }
 
-    vertex_transfer_buffer_size := renderer.vertex_transfer_buffer_offset
+    vertex_transfer_buffer_size := state.vertex_transfer_buffer_offset
     vertex_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
         size = vertex_transfer_buffer_size,
@@ -391,7 +391,7 @@ init :: proc ()
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer)
     }
 
-    texture_transfer_buffer_size := renderer.texture_transfer_buffer_offset
+    texture_transfer_buffer_size := state.texture_transfer_buffer_offset
     texture_transfer_buffer := sdl.CreateGPUTransferBuffer(gpu, sdl.GPUTransferBufferCreateInfo{
         usage = sdl.GPUTransferBufferUsage.UPLOAD,
         size = texture_transfer_buffer_size,
@@ -457,9 +457,9 @@ init :: proc ()
     clear_dynamic_array(&gpu_mesh_buffer_transfer_queue)
     clear_dynamic_array(&gpu_texture_buffer_transfer_queue)
 
-    renderer.sampler = sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
+    state.sampler = sdl.CreateGPUSampler(gpu, sdl.GPUSamplerCreateInfo{})
 
-    renderer.pipeline_triangle_list = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
+    state.pipeline_triangle_list = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = default_shader_vert,
         fragment_shader = default_shader_frag,
         primitive_type = sdl.GPUPrimitiveType.TRIANGLELIST,
@@ -509,11 +509,11 @@ init :: proc ()
                 // },
             }),
             num_color_targets = 1,
-            depth_stencil_format = renderer.depth_texture_format,
+            depth_stencil_format = state.depth_texture_format,
             has_depth_stencil_target = true,
         }
     } )
-    renderer.pipeline_line_list = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
+    state.pipeline_line_list = sdl.CreateGPUGraphicsPipeline(gpu, sdl.GPUGraphicsPipelineCreateInfo{
         vertex_shader = default_shader_line_vert,
         fragment_shader = default_shader_line_frag,
         primitive_type = sdl.GPUPrimitiveType.LINELIST,
@@ -563,7 +563,7 @@ init :: proc ()
                 // },
             }),
             num_color_targets = 1,
-            depth_stencil_format = renderer.depth_texture_format,
+            depth_stencil_format = state.depth_texture_format,
             has_depth_stencil_target = true,
         }
     } )
@@ -579,9 +579,9 @@ init :: proc ()
 close :: proc ()
 {
     sdl.DestroyWindow(window)
-    sdl.ReleaseGPUTexture(gpu, renderer.depth_texture)
+    sdl.ReleaseGPUTexture(gpu, state.depth_texture)
     sdl.Quit()
-    delete(renderer.draw_calls)
+    delete(state.draw_calls)
     delete_dynamic_array(gpu_mesh_buffer_transfer_queue)
     delete_dynamic_array(gpu_texture_buffer_transfer_queue)
 }
@@ -599,15 +599,15 @@ tick :: proc ()
     }
 
     // rebuild list of draw calls
-    for key in renderer.draw_calls {
-        clear_dynamic_array(&renderer.draw_calls[key])
+    for key in state.draw_calls {
+        clear_dynamic_array(&state.draw_calls[key])
     }
     num_draw_calls := 0
     for entity in game.entities {
         if components, exist := game.components[entity]; exist {
             for comp in components {
                 if mc, is := comp.(game.Mesh_Component); is {
-                    draw_calls_array := renderer.draw_calls[mc.primitive_type]
+                    draw_calls_array := state.draw_calls[mc.primitive_type]
                     {
                         transform := game.transforms[entity]
                         m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
@@ -620,8 +620,8 @@ tick :: proc ()
                             vertex_buffer_offset = mc.vertex_buffer_offset,
                         })
                     }
-                    renderer.draw_calls[mc.primitive_type] = draw_calls_array
-                    assert(len(renderer.draw_calls[mc.primitive_type])!=0)
+                    state.draw_calls[mc.primitive_type] = draw_calls_array
+                    assert(len(state.draw_calls[mc.primitive_type])!=0)
                     num_draw_calls += 1
                 }
             }
@@ -643,14 +643,14 @@ tick :: proc ()
             store_op = .STORE ,
         }
 
-        render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, &renderer.depth_stencil_target_info)
+        render_pass := sdl.BeginGPURenderPass(cmd_buf, &color_target, 1, &state.depth_stencil_target_info)
         {
-            sdl.BindGPUGraphicsPipeline(render_pass, renderer.pipeline_triangle_list)
-            assert(renderer.draw_calls[meshes.GPU_Primitive_Type.TRIANGLELIST]!=nil)
-            for draw in renderer.draw_calls[meshes.GPU_Primitive_Type.TRIANGLELIST]
+            sdl.BindGPUGraphicsPipeline(render_pass, state.pipeline_triangle_list)
+            assert(state.draw_calls[meshes.GPU_Primitive_Type.TRIANGLELIST]!=nil)
+            for draw in state.draw_calls[meshes.GPU_Primitive_Type.TRIANGLELIST]
             {
-                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = renderer.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
-                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = renderer.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_stride==2?._16BIT:._32BIT)
+                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = state.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
+                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = state.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_stride==2?._16BIT:._32BIT)
                 ubo := Uniform_Buffer_Object{
                     mvp = proj_matrix * view_matrix * draw.model_matrix,
                     model = draw.model_matrix,
@@ -660,7 +660,7 @@ tick :: proc ()
                 sdl.PushGPUVertexUniformData(cmd_buf, 0, &ubo, size_of(ubo))
                 sdl.BindGPUFragmentSamplers(render_pass, 0, &sdl.GPUTextureSamplerBinding{
                         texture = default_texture,
-                        sampler = renderer.sampler,
+                        sampler = state.sampler,
                     },
                     1
                 )
@@ -674,13 +674,13 @@ tick :: proc ()
                 )
             }
 
-            sdl.BindGPUGraphicsPipeline(render_pass, renderer.pipeline_line_list)
-            assert(renderer.draw_calls[meshes.GPU_Primitive_Type.LINELIST]!=nil)
-            for draw in renderer.draw_calls[meshes.GPU_Primitive_Type.LINELIST]
+            sdl.BindGPUGraphicsPipeline(render_pass, state.pipeline_line_list)
+            assert(state.draw_calls[meshes.GPU_Primitive_Type.LINELIST]!=nil)
+            for draw in state.draw_calls[meshes.GPU_Primitive_Type.LINELIST]
             {
                 // log.warnf("line draw: {}", draw)
-                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = renderer.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
-                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = renderer.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_stride==2?._16BIT:._32BIT)
+                sdl.BindGPUVertexBuffers(render_pass, 0, &sdl.GPUBufferBinding{buffer = state.vertex_buffer, offset = draw.vertex_buffer_offset}, 1)
+                sdl.BindGPUIndexBuffer(render_pass, sdl.GPUBufferBinding{buffer = state.index_buffer, offset = draw.index_buffer_offset}, draw.index_buffer_stride==2?._16BIT:._32BIT)
                 ubo := Uniform_Buffer_Object{
                     mvp = proj_matrix * view_matrix * draw.model_matrix,
                     model = draw.model_matrix,
@@ -728,15 +728,15 @@ schedule_upload_to_gpu_buffer :: proc (source: []$E, gpu_buffer_region: sdl.GPUB
     assert(gpu_buffer_region.buffer!=nil)
 
     dat := UploadToGPUBuffer_Queue_Data{
-        transfer_buffer_offset = renderer.vertex_transfer_buffer_offset,
+        transfer_buffer_offset = state.vertex_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
         source = raw_data(source),
         gpu_buffer_region = gpu_buffer_region,
     }
     append(&gpu_mesh_buffer_transfer_queue, dat)
-    renderer.vertex_transfer_buffer_offset += dat.size
+    state.vertex_transfer_buffer_offset += dat.size
 
-    assert((dat.size+dat.transfer_buffer_offset)<=renderer.vertex_transfer_buffer_offset, "this GPU buffer is too small")
+    assert((dat.size+dat.transfer_buffer_offset)<=state.vertex_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_buffer()] scheduled: {}", dat)
 }
 schedule_upload_to_gpu_texture :: proc (source: []$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
@@ -747,7 +747,7 @@ schedule_upload_to_gpu_texture :: proc (source: []$E, pixels_per_row: u32, rows_
     assert(rows_per_layer!=0)
 
     dat := UploadToGPUTexture_Queue_Data{
-        transfer_buffer_offset = renderer.texture_transfer_buffer_offset,
+        transfer_buffer_offset = state.texture_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
         source = raw_data(source),
         pixels_per_row = pixels_per_row,
@@ -755,9 +755,9 @@ schedule_upload_to_gpu_texture :: proc (source: []$E, pixels_per_row: u32, rows_
         gpu_texture_region = gpu_texture_region,
     }
     append(&gpu_texture_buffer_transfer_queue, dat)
-    renderer.texture_transfer_buffer_offset += dat.size
+    state.texture_transfer_buffer_offset += dat.size
 
-    assert((dat.size+dat.transfer_buffer_offset)<=renderer.texture_transfer_buffer_offset, "this GPU buffer is too small")
+    assert((dat.size+dat.transfer_buffer_offset)<=state.texture_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_texture()] scheduled: {}", dat)
 }
 schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u32, rows_per_layer: u32, size: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
@@ -768,7 +768,7 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
     assert(rows_per_layer!=0)
 
     dat := UploadToGPUTexture_Queue_Data{
-        transfer_buffer_offset = renderer.texture_transfer_buffer_offset,
+        transfer_buffer_offset = state.texture_transfer_buffer_offset,
         size = size,
         source = source,
         pixels_per_row = pixels_per_row,
@@ -776,9 +776,9 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
         gpu_texture_region = gpu_texture_region,
     }
     append(&gpu_texture_buffer_transfer_queue, dat)
-    renderer.texture_transfer_buffer_offset += dat.size
+    state.texture_transfer_buffer_offset += dat.size
 
-    assert((dat.size+dat.transfer_buffer_offset)<=renderer.texture_transfer_buffer_offset, "this GPU buffer is too small")
+    assert((dat.size+dat.transfer_buffer_offset)<=state.texture_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
 }
 
@@ -803,21 +803,21 @@ create_mesh_components :: proc(gltf_meshes: []meshes.GLTF_Mesh, allocator := con
         for gltf_sub_mesh in gltf_mesh {
             log.debugf("len(vertex_data): {}, len(index_data): {}", len(gltf_sub_mesh.vertex_data), len(gltf_sub_mesh.index_data))
 
-            mesh_vertex_buffer_pos := renderer.vertex_buffer_offset
+            mesh_vertex_buffer_pos := state.vertex_buffer_offset
             schedule_upload_to_gpu_buffer(
                 source = gltf_sub_mesh.vertex_data,
                 gpu_buffer_region = sdl.GPUBufferRegion{
-                    buffer = renderer.vertex_buffer,
+                    buffer = state.vertex_buffer,
                     offset = mesh_vertex_buffer_pos,
                     size = app.num_bytes_of_u32(gltf_sub_mesh.vertex_data),
                 },
             )
-            renderer.vertex_buffer_offset += app.num_bytes_of_u32(gltf_sub_mesh.vertex_data)
+            state.vertex_buffer_offset += app.num_bytes_of_u32(gltf_sub_mesh.vertex_data)
 
-            mesh_index_buffer_pos := renderer.index_buffer_offset
+            mesh_index_buffer_pos := state.index_buffer_offset
             num_indices := app.num_bytes_of_u32(gltf_sub_mesh.index_data) / u32(gltf_sub_mesh.index_stride)
             gpu_buffer_region := sdl.GPUBufferRegion{
-                buffer = renderer.index_buffer,
+                buffer = state.index_buffer,
                 offset = mesh_index_buffer_pos,
                 size = app.num_bytes_of_u32(gltf_sub_mesh.index_data),
             }
@@ -825,7 +825,7 @@ create_mesh_components :: proc(gltf_meshes: []meshes.GLTF_Mesh, allocator := con
                 source = gltf_sub_mesh.index_data,
                 gpu_buffer_region = gpu_buffer_region,
             )
-            renderer.index_buffer_offset += gpu_buffer_region.size
+            state.index_buffer_offset += gpu_buffer_region.size
             
             mesh_components[sub_mesh_index] = game.Mesh_Component{
                 primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,

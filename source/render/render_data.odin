@@ -6,7 +6,7 @@ import "core:c"
 gpu: ^sdl.GPUDevice
 window_size: [2]c.int = {1280, 780}
 window: ^sdl.Window
-renderer: Renderer_State
+state: Renderer_State
 default_texture: ^sdl.GPUTexture
 default_shader_vert: ^sdl.GPUShader
 default_shader_frag: ^sdl.GPUShader
