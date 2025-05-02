@@ -627,7 +627,7 @@ tick :: proc ()
             }
         }
     }
-    log.debugf("num_draw_calls: %d", num_draw_calls)
+    // log.debugf("num_draw_calls: %d", num_draw_calls)
     
     cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
     swapchain_tex : ^sdl.GPUTexture
