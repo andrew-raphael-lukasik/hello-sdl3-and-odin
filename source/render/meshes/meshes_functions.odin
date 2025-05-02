@@ -8,22 +8,26 @@ import "../gltf2"
 
 
 @(require_results)
-load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([][]Vertex_Data__pos3_uv2_col3, [][]byte, []u8, []GLTF_Mesh_Object_Info) {
+load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocator) -> ([]GLTF_Mesh_Node, []GLTF_Mesh) {
     mesh_data, error := gltf2.load_from_file(file_name)
+    defer gltf2.unload(mesh_data)
     switch err in error
     {
         case gltf2.JSON_Error: log.error("gltf2.JSON_Error")
         case gltf2.GLTF_Error: log.error("gltf2.GLTF_Error")
     }
 
-    defer gltf2.unload(mesh_data)
+    num_meshes := len(mesh_data.meshes)
+    gltf_meshes := make([]GLTF_Mesh, num_meshes, allocator)
 
-    vertex_data := make([dynamic][]Vertex_Data__pos3_uv2_col3, allocator)
-    index_data := make([dynamic][]byte, allocator)
-    index_stride_data := make([dynamic]u8, allocator)
+    mesh_id := 0
+    for mesh in mesh_data.meshes {
+        num_sub_meshes := len(mesh.primitives)
+        gltf_mesh := make(GLTF_Mesh, num_sub_meshes, context.allocator)
+        vertex_data := make([]Vertex_Data__pos3_uv2_col3, num_sub_meshes, allocator)
+        index_data := make([]byte, num_sub_meshes, allocator)
 
-    for mesh in mesh_data.meshes
-    {
+        sub_mesh_id := 0
         for primitive in mesh.primitives
         {
             if primitive.mode!=.Triangles {
@@ -123,16 +127,22 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
                 vertices[i].col = colors[i]
             }
             
-            append(&vertex_data, vertices)
-            append(&index_data, indices[:])
-            append(&index_stride_data, index_size==._16BIT?2:4)
+            gltf_mesh[sub_mesh_id] = GLTF_Sub_Mesh{
+                vertex_data = vertices,
+                index_data = indices[:],
+                index_stride = index_size==._16BIT ? 2 : 4,
+            }
+            sub_mesh_id += 1
         }
+
+        gltf_meshes[mesh_id] = gltf_mesh
+        mesh_id += 1
     }
 
-    mesh_objects := make_dynamic_array([dynamic]GLTF_Mesh_Object_Info)
+    mesh_objects := make_dynamic_array([dynamic]GLTF_Mesh_Node)
     for node in mesh_data.nodes {
         if node_mesh, is_mesh := node.mesh.?; is_mesh {
-            obj := GLTF_Mesh_Object_Info{
+            obj := GLTF_Mesh_Node{
                 mesh_index = node_mesh,
                 translation = node.translation,
                 scale = node.scale,
@@ -142,7 +152,7 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         }
     }
 
-    return vertex_data[:], index_data[:], index_stride_data[:], mesh_objects[:]
+    return mesh_objects[:], gltf_meshes
 }
 
 bytes_to_u16_slice :: proc(bytes: []byte, little_endian: bool = true, allocator := context.allocator) -> []u16 {

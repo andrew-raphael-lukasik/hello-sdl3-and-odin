@@ -11,7 +11,6 @@ import "core:os"
 import "core:path/filepath"
 import "core:strings"
 import "core:log"
-import "core:crypto/hash"
 import "core:math/rand"
 import "base:runtime"
 import "../app"
@@ -127,7 +126,7 @@ init :: proc ()
 
     default_texture = textures.create_default_texture(gpu)
     schedule_upload_to_gpu_texture(
-        source = &textures.default_texture_pixels,
+        source = textures.default_texture_pixels,
         pixels_per_row = 4,
         rows_per_layer = 4,
         gpu_texture_region = &sdl.GPUTextureRegion{
@@ -167,7 +166,7 @@ init :: proc ()
     {
         vertex_buffer_pos := renderer.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
-            source = &meshes.default_quad_vertices,
+            source = meshes.default_quad_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
                 offset = vertex_buffer_pos,
@@ -178,7 +177,7 @@ init :: proc ()
     
         index_buffer_pos := renderer.index_buffer_offset
         schedule_upload_to_gpu_buffer(
-            source = &meshes.default_quad_indices,
+            source = meshes.default_quad_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.index_buffer,
                 offset = index_buffer_pos,
@@ -218,7 +217,7 @@ init :: proc ()
     {
         vertex_buffer_pos := renderer.vertex_buffer_offset
         schedule_upload_to_gpu_buffer(
-            source = &meshes.axis_vertices,
+            source = meshes.axis_vertices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.vertex_buffer,
                 offset = vertex_buffer_pos,
@@ -229,7 +228,7 @@ init :: proc ()
     
         index_buffer_pos := renderer.index_buffer_offset
         schedule_upload_to_gpu_buffer(
-            source = &meshes.axis_indices,
+            source = meshes.axis_indices,
             gpu_buffer_region = sdl.GPUBufferRegion{
                 buffer = renderer.index_buffer,
                 offset = index_buffer_pos,
@@ -261,21 +260,18 @@ init :: proc ()
     }
 
     {
-        mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/DamagedHelmet.gltf"))
-        for mesh_object in mesh_objects {
-            xxx := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
-            yyy := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
-            zzz := linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
-            pos := mesh_object.translation
-            mesh_component := mesh_components[mesh_object.mesh_index]
-            bytes := mem.any_to_bytes(mesh_component)
-            comp_hash_value := hash.hash_bytes(hash.Algorithm.Insecure_SHA1, bytes)
+        all_mesh_components, gltf_mesh_nodes := create_mesh_components_from_file(app.path_to_abs("/data/DamagedHelmet.gltf", context.temp_allocator))
+        for gltf_mesh_node in gltf_mesh_nodes {
             entity := game.create_entity_and_components(
                 game.Label_Component{
-                    value = fmt.aprintf("DamagedHelmet.gltf mesh {} {}", mesh_object.mesh_index, comp_hash_value)
+                    value = fmt.aprintf("DamagedHelmet.gltf mesh {}", gltf_mesh_node.mesh_index)
                 },
-                mesh_component,
             )
+
+            xxx := linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{gltf_mesh_node.scale.x, 0, 0})
+            yyy := linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{0, gltf_mesh_node.scale.y, 0})
+            zzz := linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{0, 0, gltf_mesh_node.scale.z})
+            pos := gltf_mesh_node.translation
             game.transforms[entity] = game.Transform{
                 matrix3x3 = matrix[3,3]f32{
                     xxx[0], yyy[0], zzz[0],
@@ -284,23 +280,26 @@ init :: proc ()
                 },
                 translation = pos,
             }
+            
+            node_mesh_components := all_mesh_components[gltf_mesh_node.mesh_index]
+            for mesh_component in node_mesh_components {
+                append(&game.components[entity], mesh_component)
+            }
         }
     }
     {
-        mesh_components, mesh_objects := create_mesh_components_from_file(app.path_to_abs("/data/de_chateau.gltf"))
-        for mesh_object in mesh_objects {
-            cx: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{mesh_object.scale.x, 0, 0})
-            cy: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, mesh_object.scale.y, 0})
-            cz: [3]f32 = linalg.quaternion128_mul_vector3(mesh_object.rotation, [3]f32{0, 0, mesh_object.scale.z})
-            ct: [3]f32 = mesh_object.translation
-            mesh_component := mesh_components[mesh_object.mesh_index]
-            mesh_component_hash := string(hash.hash_bytes(hash.Algorithm.Insecure_SHA1, mem.any_to_bytes(mesh_component), context.temp_allocator))
+        all_mesh_components, gltf_mesh_nodes := create_mesh_components_from_file(app.path_to_abs("/data/de_chateau.gltf", context.temp_allocator))
+        for gltf_mesh_node in gltf_mesh_nodes {
             entity := game.create_entity_and_components(
                 game.Label_Component{
-                    value = fmt.aprintf("other gltf mesh {} {}", mesh_object.mesh_index, mesh_component_hash)
+                    value = fmt.aprintf("other gltf mesh {}", gltf_mesh_node.mesh_index)
                 },
-                mesh_component,
             )
+
+            cx: [3]f32 = linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{gltf_mesh_node.scale.x, 0, 0})
+            cy: [3]f32 = linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{0, gltf_mesh_node.scale.y, 0})
+            cz: [3]f32 = linalg.quaternion128_mul_vector3(gltf_mesh_node.rotation, [3]f32{0, 0, gltf_mesh_node.scale.z})
+            ct: [3]f32 = gltf_mesh_node.translation
             game.transforms[entity] = game.Transform{
                 matrix3x3 = matrix[3,3]f32{
                     cx[0], cy[0], cz[0],
@@ -308,6 +307,11 @@ init :: proc ()
                     cx[2], cy[2], cz[2],
                 },
                 translation = ct + {5, 0, 0}
+            }
+
+            node_mesh_components := all_mesh_components[gltf_mesh_node.mesh_index]
+            for mesh_component in node_mesh_components {
+                append(&game.components[entity], mesh_component)
             }
         }
     }
@@ -328,7 +332,61 @@ init :: proc ()
         }
 
         app.log_print_slice((transmute([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map) [:4], "default quad mesh vertices", true)
+        // app.log_print_slice((transmute([^]meshes.Vertex_Data__pos3_uv2_col3) transfer_map) [:4], "default quad mesh vertices B", true)
         app.log_print_slice((transmute([^]u16) transfer_map) [64:64+6], "default quad mesh indices", false)
+        // app.log_print_slice(mem.slice_data_cast([]u16, transfer_map), "default quad mesh indices B", false)
+
+        for entity in game.entities {
+            if components, exist := game.components[entity]; exist {
+                for comp in components {
+                    if mc, is := comp.(game.Mesh_Component); is {
+                        log.debugf("entity {} has a mesh component, data sent to GPU:", entity)
+                        switch mc.vertex_buffer_type
+                        {
+                            case meshes.Vertex_Data__pos3_uv2_col3:
+                            {
+                                start := mc.vertex_buffer_offset
+                                end := mc.vertex_buffer_offset + mc.vertex_buffer_length * size_of(meshes.Vertex_Data__pos3_uv2_col3)
+                                bytes := transfer_map [start:end]
+                                verts :=  mem.slice_data_cast([]meshes.Vertex_Data__pos3_uv2_col3, bytes)
+                                app.log_print_slice(verts, "vertices", true)
+                            }
+                            case meshes.Vertex_Data__pos3_col3:
+                            {
+                                start := mc.vertex_buffer_offset
+                                end := mc.vertex_buffer_offset + mc.vertex_buffer_length * size_of(meshes.Vertex_Data__pos3_col3)
+                                bytes := transfer_map [start:end]
+                                verts :=  mem.slice_data_cast([]meshes.Vertex_Data__pos3_col3, bytes)
+                                app.log_print_slice(verts, "vertices", true)
+                            }
+                            case: log.errorf("vertex_buffer_type not implemented: {}", mc.vertex_buffer_type)
+                        }
+                        start := mc.index_buffer_offset
+                        end := mc.index_buffer_offset + mc.index_buffer_length * u32(mc.index_buffer_stride)
+                        bytes := transfer_map [start:end]
+                        // app.log_print_slice(bytes, "entity mesh indices as bytes", false)
+                        assert(end-start==u32(len(bytes)))
+                        assert(mc.index_buffer_length==u32(len(bytes))/u32(mc.index_buffer_stride))
+                        switch mc.index_buffer_stride
+                        {
+                            case size_of(u16):
+                            {
+                                indices := mem.slice_data_cast([]u16, bytes)
+                                // indices = meshes.bytes_to_u16_slice(bytes, false)
+                                // indices = (transmute([^]u16) transfer_map) [start:end]
+                                app.log_print_slice(indices, "entity mesh indices", false)
+                            }
+                            case size_of(u32):
+                            {
+                                indices := mem.slice_data_cast([]u32, bytes)
+                                app.log_print_slice(indices, "entity mesh indices", false)
+                            }
+                            case: log.errorf("index_buffer_stride not implemented: {}", mc.index_buffer_stride)
+                        }
+                    }
+                }
+            }
+        }
 
         sdl.UnmapGPUTransferBuffer(gpu, vertex_transfer_buffer)
     }
@@ -544,13 +602,14 @@ tick :: proc ()
     for key in renderer.draw_calls {
         clear_dynamic_array(&renderer.draw_calls[key])
     }
-    {
-        for entity in game.entities {
-            if components, exist := game.components[entity]; exist {
-                for comp in components {
-                    if mc, is := comp.(game.Mesh_Component); is {
+    num_draw_calls := 0
+    for entity in game.entities {
+        if components, exist := game.components[entity]; exist {
+            for comp in components {
+                if mc, is := comp.(game.Mesh_Component); is {
+                    draw_calls_array := renderer.draw_calls[mc.primitive_type]
+                    {
                         transform := game.transforms[entity]
-                        draw_calls_array := renderer.draw_calls[mc.primitive_type]
                         m4x4 := linalg.matrix4_from_matrix3_f32(transform.matrix3x3)
                         m4x4[3].xyz = transform.translation
                         append(&draw_calls_array, Draw_Call_Data{
@@ -560,13 +619,15 @@ tick :: proc ()
                             index_buffer_length = mc.index_buffer_length,
                             vertex_buffer_offset = mc.vertex_buffer_offset,
                         })
-                        renderer.draw_calls[mc.primitive_type] = draw_calls_array
-                        assert(len(renderer.draw_calls[mc.primitive_type])!=0)
                     }
+                    renderer.draw_calls[mc.primitive_type] = draw_calls_array
+                    assert(len(renderer.draw_calls[mc.primitive_type])!=0)
+                    num_draw_calls += 1
                 }
             }
         }
     }
+    log.debugf("num_draw_calls: %d", num_draw_calls)
     
     cmd_buf := sdl.AcquireGPUCommandBuffer(gpu)
     swapchain_tex : ^sdl.GPUTexture
@@ -661,15 +722,15 @@ load_shader :: proc (device: ^sdl.GPUDevice, code: []u8, stage: sdl.GPUShaderSta
     })
 }
 
-schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPUBufferRegion)
+schedule_upload_to_gpu_buffer :: proc (source: []$E, gpu_buffer_region: sdl.GPUBufferRegion)
 {
-    assert(source!=nil)
+    // assert(source!=nil)
     assert(gpu_buffer_region.buffer!=nil)
 
     dat := UploadToGPUBuffer_Queue_Data{
         transfer_buffer_offset = renderer.vertex_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
-        source = raw_data(source^),
+        source = raw_data(source),
         gpu_buffer_region = gpu_buffer_region,
     }
     append(&gpu_mesh_buffer_transfer_queue, dat)
@@ -678,9 +739,9 @@ schedule_upload_to_gpu_buffer :: proc (source: ^[]$E, gpu_buffer_region: sdl.GPU
     assert((dat.size+dat.transfer_buffer_offset)<=renderer.vertex_transfer_buffer_offset, "this GPU buffer is too small")
     log.debugf("[schedule_upload_to_gpu_buffer()] scheduled: {}", dat)
 }
-schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
+schedule_upload_to_gpu_texture :: proc (source: []$E, pixels_per_row: u32, rows_per_layer: u32, gpu_texture_region: ^sdl.GPUTextureRegion)
 {
-    assert(source!=nil)
+    // assert(source!=nil)
     assert(gpu_texture_region!=nil)
     assert(pixels_per_row!=0)
     assert(rows_per_layer!=0)
@@ -688,7 +749,7 @@ schedule_upload_to_gpu_texture :: proc (source: ^[]$E, pixels_per_row: u32, rows
     dat := UploadToGPUTexture_Queue_Data{
         transfer_buffer_offset = renderer.texture_transfer_buffer_offset,
         size = app.num_bytes_of_u32(source),
-        source = raw_data(source^),
+        source = raw_data(source),
         pixels_per_row = pixels_per_row,
         rows_per_layer = rows_per_layer,
         gpu_texture_region = gpu_texture_region,
@@ -721,61 +782,69 @@ schedule_upload_to_gpu_texture_rawptr :: proc (source: rawptr, pixels_per_row: u
     log.debugf("[schedule_upload_to_gpu_texture_rawptr()] scheduled: {}", dat)
 }
 
-create_mesh_components_from_file :: proc(file_name: string, allocator := context.allocator) -> ([]game.Mesh_Component, []meshes.GLTF_Mesh_Object_Info) {
-    vertex_data_array, index_data_array, index_element_stride_array, mesh_object_array := meshes.load_mesh_data_from_file(file_name, allocator)
-    return create_mesh_components(vertex_data_array, index_data_array, index_element_stride_array, allocator), mesh_object_array
+create_mesh_components_from_file :: proc(file_name: string, allocator := context.allocator) -> (all_mesh_components: [][]game.Mesh_Component, gltf_mesh_nodes: []meshes.GLTF_Mesh_Node) {
+    gltf_meshes: []meshes.GLTF_Mesh
+    gltf_mesh_nodes, gltf_meshes = meshes.load_mesh_data_from_file(file_name, allocator)
+    mesh_components := create_mesh_components(gltf_meshes, allocator)
+    return mesh_components, gltf_mesh_nodes
 }
 
 @(require_results)
-create_mesh_components :: proc(vertex_data: [][]meshes.Vertex_Data__pos3_uv2_col3, index_data: [][]byte, index_stride: []u8, allocator := context.allocator) -> []game.Mesh_Component {
-    assert(len(vertex_data)==len(index_data))
-    log.debugf("len(vertex_data): {}, len(index_data): {}", len(vertex_data), len(index_data))
-    num_items := len(vertex_data)
-    mesh_components := make([]game.Mesh_Component, num_items, allocator)
-    
-    for i in 0..<num_items {
-        indices := index_data[i]
-        index_element_stride := u32(index_stride[i])
-        vertices := vertex_data[i]
-        
-        mesh_vertex_buffer_pos := renderer.vertex_buffer_offset
-        schedule_upload_to_gpu_buffer(
-            source = &vertices,
-            gpu_buffer_region = sdl.GPUBufferRegion{
-                buffer = renderer.vertex_buffer,
-                offset = mesh_vertex_buffer_pos,
-                size = app.num_bytes_of_u32(&vertices),
-            },
-        )
-        renderer.vertex_buffer_offset += app.num_bytes_of_u32(&vertices)
+create_mesh_components :: proc(gltf_meshes: []meshes.GLTF_Mesh, allocator := context.allocator) -> [][]game.Mesh_Component {
+    num_meshes := len(gltf_meshes)
+    all_mesh_components := make([][]game.Mesh_Component, num_meshes, allocator)
 
-        indices_slice := indices[:]
-        mesh_index_buffer_pos := renderer.index_buffer_offset
-        num_indices := app.num_bytes_of_u32(&indices_slice) / index_element_stride
-        gpu_buffer_region := sdl.GPUBufferRegion{
-            buffer = renderer.index_buffer,
-            offset = mesh_index_buffer_pos,
-            size = app.num_bytes_of_u32(&indices_slice),
-        }
-        schedule_upload_to_gpu_buffer(
-            source = &indices_slice,
-            gpu_buffer_region = gpu_buffer_region,
-        )
-        renderer.index_buffer_offset += gpu_buffer_region.size
-        
-        mesh_components[i] = game.Mesh_Component{
-            primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
+    mesh_index := 0
+    for gltf_mesh in gltf_meshes {
+        num_sub_meshes := len(gltf_mesh)
+        mesh_components := make([]game.Mesh_Component, num_sub_meshes, allocator)
+
+        sub_mesh_index := 0
+        for gltf_sub_mesh in gltf_mesh {
+            log.debugf("len(vertex_data): {}, len(index_data): {}", len(gltf_sub_mesh.vertex_data), len(gltf_sub_mesh.index_data))
+
+            mesh_vertex_buffer_pos := renderer.vertex_buffer_offset
+            schedule_upload_to_gpu_buffer(
+                source = gltf_sub_mesh.vertex_data,
+                gpu_buffer_region = sdl.GPUBufferRegion{
+                    buffer = renderer.vertex_buffer,
+                    offset = mesh_vertex_buffer_pos,
+                    size = app.num_bytes_of_u32(gltf_sub_mesh.vertex_data),
+                },
+            )
+            renderer.vertex_buffer_offset += app.num_bytes_of_u32(gltf_sub_mesh.vertex_data)
+
+            mesh_index_buffer_pos := renderer.index_buffer_offset
+            num_indices := app.num_bytes_of_u32(gltf_sub_mesh.index_data) / u32(gltf_sub_mesh.index_stride)
+            gpu_buffer_region := sdl.GPUBufferRegion{
+                buffer = renderer.index_buffer,
+                offset = mesh_index_buffer_pos,
+                size = app.num_bytes_of_u32(gltf_sub_mesh.index_data),
+            }
+            schedule_upload_to_gpu_buffer(
+                source = gltf_sub_mesh.index_data,
+                gpu_buffer_region = gpu_buffer_region,
+            )
+            renderer.index_buffer_offset += gpu_buffer_region.size
             
-            index_buffer_offset = mesh_index_buffer_pos,
-            index_buffer_stride = index_stride[i],
-            index_buffer_length = num_indices,
-            
-            vertex_buffer_offset = mesh_vertex_buffer_pos,
-            vertex_buffer_type = type_of(vertices[0]),
-            vertex_buffer_length = u32(len(vertices)),
+            mesh_components[sub_mesh_index] = game.Mesh_Component{
+                primitive_type = meshes.GPU_Primitive_Type.TRIANGLELIST,
+                
+                index_buffer_offset = mesh_index_buffer_pos,
+                index_buffer_stride = gltf_sub_mesh.index_stride,
+                index_buffer_length = num_indices,
+                
+                vertex_buffer_offset = mesh_vertex_buffer_pos,
+                vertex_buffer_type = type_of(gltf_sub_mesh.vertex_data[0]),
+                vertex_buffer_length = u32(len(gltf_sub_mesh.vertex_data)),
+            }
+            sub_mesh_index += 1
         }
+
+        all_mesh_components[mesh_index] = mesh_components
+        mesh_index += 1
     }
 
-    log.debugf("results: {}", mesh_components)
-    return mesh_components
+    log.debugf("all_mesh_components: {}", all_mesh_components)
+    return all_mesh_components
 }

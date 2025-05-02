@@ -71,8 +71,8 @@ tick :: proc ()
 }
 
 
-num_bytes_of :: proc (source: ^[]$E) -> int { return len(source) * size_of(source[0]) }
-num_bytes_of_u32 :: proc (source: ^[]$E) -> u32 { return u32(num_bytes_of(source)) }
+num_bytes_of :: proc (source: []$E) -> int { return len(source) * size_of(source[0]) }
+num_bytes_of_u32 :: proc (source: []$E) -> u32 { return u32(num_bytes_of(source)) }
 
 path_to_abs :: proc (path_relative: string, allocator: mem.Allocator = context.allocator) -> (path_abs: string)
 {

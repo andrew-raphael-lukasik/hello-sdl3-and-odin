@@ -22,12 +22,19 @@ Vertex_Data__pos3_uv2_col3 :: struct
     col: [3]f32,
 }
 
-GLTF_Mesh_Object_Info :: struct {
+GLTF_Mesh_Node :: struct {
     mesh_index: u32,
     // transform: matrix[4,4]f32,
     translation: [3]f32,
     scale: [3]f32,
     rotation: quaternion128,
+}
+
+GLTF_Mesh :: []GLTF_Sub_Mesh
+GLTF_Sub_Mesh :: struct {
+    vertex_data: []Vertex_Data__pos3_uv2_col3,
+    index_data: []byte,
+    index_stride: u8,
 }
 
 GPU_Primitive_Type :: enum u8 {
