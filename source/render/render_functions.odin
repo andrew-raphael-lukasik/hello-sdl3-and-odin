@@ -349,7 +349,7 @@ init :: proc ()
                                 end := mc.vertex_buffer_offset + mc.vertex_buffer_length * size_of(meshes.Vertex_Data__pos3_uv2_col3)
                                 bytes := transfer_map [start:end]
                                 verts :=  mem.slice_data_cast([]meshes.Vertex_Data__pos3_uv2_col3, bytes)
-                                app.log_print_slice(verts, "vertices", true)
+                                // app.log_print_slice(verts, "vertices", true)
                             }
                             case meshes.Vertex_Data__pos3_col3:
                             {
@@ -357,7 +357,7 @@ init :: proc ()
                                 end := mc.vertex_buffer_offset + mc.vertex_buffer_length * size_of(meshes.Vertex_Data__pos3_col3)
                                 bytes := transfer_map [start:end]
                                 verts :=  mem.slice_data_cast([]meshes.Vertex_Data__pos3_col3, bytes)
-                                app.log_print_slice(verts, "vertices", true)
+                                // app.log_print_slice(verts, "vertices", true)
                             }
                             case: log.errorf("vertex_buffer_type not implemented: {}", mc.vertex_buffer_type)
                         }

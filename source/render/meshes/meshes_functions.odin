@@ -28,8 +28,7 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
         index_data := make([]byte, num_sub_meshes, allocator)
 
         sub_mesh_id := 0
-        for primitive in mesh.primitives
-        {
+        for primitive in mesh.primitives {
             if primitive.mode!=.Triangles {
                 log.errorf("Unsupported primitive type: {}", primitive.mode)
                 continue
@@ -69,9 +68,8 @@ load_mesh_data_from_file :: proc(file_name: string, allocator := context.allocat
                     }
             }
 
-            for attribute_name, accessor_index in primitive.attributes
-            {
                 primitive_accessor := mesh_data.accessors[accessor_index]
+            for attribute_name, attribute_accessor_index in primitive.attributes {
                 switch attribute_name
                 {
                     case "POSITION":
